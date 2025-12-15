@@ -185,8 +185,29 @@
   <div class="section">
     <h2>⏱ TIMER</h2>
     <p id="timerStatus">Timer nicht gestartet.</p>
-    <button class="btn-green" id="timerStart">▶ Timer starten (75 min)</button>
-    <button class="btn-grey" id="timerStop">⏹ Timer stoppen</button>
+    document.getElementById("timerStart").onclick = async () => {
+  await fetch("/api/gm/timer/start", {
+    method: "POST",
+    headers: { "Content-Type": "application/json", "x-gm-token": GM_TOKEN }
+  });
+  await loadTimer(); // startet flüssigen Timer
+};
+
+document.getElementById("timerStop").onclick = async () => {
+  await fetch("/api/gm/timer/stop", {
+    method: "POST",
+    headers: { "Content-Type": "application/json", "x-gm-token": GM_TOKEN }
+  });
+
+  gmRemainingSeconds = null;
+  renderTimerStatus();
+
+  if (gmTimerInterval) {
+    clearInterval(gmTimerInterval);
+    gmTimerInterval = null;
+  }
+};
+
   </div>
 
   <!-- BROADCAST -->
@@ -255,6 +276,8 @@ let currentChatTeam = null;
 let inboxInterval = null;
 let lastSeenTeamMsgId = {}; // { teamId: lastMessageId }
 let popupTeamId = null;
+let gmTimerInterval = null;
+let gmRemainingSeconds = null;
 
 // ------------- LOGIN -------------
 document.getElementById("loginBtn").onclick = async () => {
@@ -280,36 +303,52 @@ document.getElementById("loginBtn").onclick = async () => {
 };
 
 // ------------- TIMER -------------
+function renderTimerStatus() {
+  const box = document.getElementById("timerStatus");
+  if (!box) return;
+
+  if (gmRemainingSeconds === null) {
+    box.textContent = "Timer nicht gestartet.";
+    return;
+  }
+
+  const min = Math.floor(gmRemainingSeconds / 60);
+  let sec = gmRemainingSeconds % 60;
+  if (sec < 10) sec = "0" + sec;
+
+  box.textContent = `Restzeit: ${min}:${sec}`;
+}
+
 async function loadTimer() {
   const res = await fetch("/api/timer");
   const data = await res.json();
-  const box = document.getElementById("timerStatus");
 
   if (!data.running) {
-    box.textContent = "Timer nicht gestartet.";
-  } else {
-    let min = Math.floor(data.remainingSeconds / 60);
-    let sec = data.remainingSeconds % 60;
-    if (sec < 10) sec = "0" + sec;
-    box.textContent = `Restzeit: ${min}:${sec}`;
+    gmRemainingSeconds = null;
+    renderTimerStatus();
+
+    if (gmTimerInterval) {
+      clearInterval(gmTimerInterval);
+      gmTimerInterval = null;
+    }
+    return;
+  }
+
+  // Server ist die Wahrheit → setze Restzeit neu
+  gmRemainingSeconds = data.remainingSeconds;
+  renderTimerStatus();
+
+  // Lokales "flüssiges" Runterzählen starten (nur einmal)
+  if (!gmTimerInterval) {
+    gmTimerInterval = setInterval(() => {
+      if (gmRemainingSeconds === null) return;
+      if (gmRemainingSeconds > 0) {
+        gmRemainingSeconds--;
+        renderTimerStatus();
+      }
+    }, 1000);
   }
 }
-
-document.getElementById("timerStart").onclick = async () => {
-  await fetch("/api/gm/timer/start", {
-    method: "POST",
-    headers: { "Content-Type": "application/json", "x-gm-token": GM_TOKEN }
-  });
-  loadTimer();
-};
-
-document.getElementById("timerStop").onclick = async () => {
-  await fetch("/api/gm/timer/stop", {
-    method: "POST",
-    headers: { "Content-Type": "application/json", "x-gm-token": GM_TOKEN }
-  });
-  loadTimer();
-};
 
 // ------------- BROADCAST -------------
 document.getElementById("broadcastSend").onclick = async () => {
@@ -638,6 +677,7 @@ function loadAll() {
 </script>
 </body>
 </html>
+
 
 
 
