@@ -417,12 +417,14 @@ async function loadSubmissions() {
       s.mimetype.startsWith("image")
         ? `<img src="/uploads/${s.filename}">`
         : `<video src="/uploads/${s.filename}" controls></video>`;
-
-    tbody.insertAdjacentHTML(
+tbody.insertAdjacentHTML(
       "beforeend",
       `<tr data-sub-id="${s.id}">
         <td>${s.teamName}</td>
-        <td>M${s.missionNumber}: ${s.missionTitleDe}</td>
+        <td>
+          <div><strong>M${s.missionNumber}: ${s.missionTitleDe}</strong></div>
+          <div class="gm-mission-desc">${s.missionDescDe || ""}</div>
+        </td>
         <td>${media}</td>
         <td>${s.status}</td>
         <td>
@@ -522,4 +524,5 @@ function loadAll() {
 </script>
 </body>
 </html>
+
 
