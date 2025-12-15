@@ -18,6 +18,37 @@
       color: #ccc;
       margin-top: 4px;
     }
+    #gmPopupOverlay{
+      position: fixed;
+      inset: 0;
+      background: rgba(0,0,0,0.65);
+      display: none;
+      align-items: center;
+      justify-content: center;
+      z-index: 100;
+      padding: 12px;
+    }
+    #gmPopupOverlay.active{ display:flex; }
+
+    #gmPopupBox{
+      background: #222;
+      color: #fff;
+      width: 100%;
+      max-width: 520px;
+      border-radius: 12px;
+      padding: 14px;
+      box-shadow: 0 10px 30px rgba(0,0,0,0.6);
+    }
+    #gmPopupBox h3{ margin:0 0 6px 0; }
+    #gmPopupBox p{ margin:0 0 10px 0; color:#ddd; }
+    #gmPopupReply{
+      width:100%;
+      padding:10px;
+      border-radius:8px;
+      border:none;
+      background:#333;
+      color:#fff;
+    }
 
     header {
       background: #e30613;
@@ -221,6 +252,9 @@
 <script>
 let GM_TOKEN = null;
 let currentChatTeam = null;
+let inboxInterval = null;
+let lastSeenTeamMsgId = {}; // { teamId: lastMessageId }
+let popupTeamId = null;
 
 // ------------- LOGIN -------------
 document.getElementById("loginBtn").onclick = async () => {
@@ -372,6 +406,63 @@ async function loadChat() {
 
   box.scrollTop = box.scrollHeight;
 }
+async function loadInboxAndNotify() {
+  if (!GM_TOKEN) return;
+
+  const res = await fetch("/api/gm/inbox", {
+    headers: { "x-gm-token": GM_TOKEN }
+  });
+  if (!res.ok) return;
+  const rows = await res.json();
+
+  // Prüfen: neue Team-Nachrichten?
+  rows.forEach(r => {
+    if (!r.lastMessageId) return;
+    const teamId = r.teamId;
+
+    // Nur Nachrichten vom Team (fromGm = 0)
+    if (r.fromGm === 1) return;
+
+    const prev = lastSeenTeamMsgId[teamId] || 0;
+    if (r.lastMessageId > prev) {
+      lastSeenTeamMsgId[teamId] = r.lastMessageId;
+      showGmPopup(teamId, r.teamName, r.text);
+    }
+  });
+}
+
+function showGmPopup(teamId, teamName, text) {
+  popupTeamId = teamId;
+  document.getElementById("gmPopupTitle").textContent = `Neue Nachricht von ${teamName}`;
+  document.getElementById("gmPopupText").textContent = text;
+  document.getElementById("gmPopupReply").value = "";
+  document.getElementById("gmPopupOverlay").classList.add("active");
+
+  // Chat direkt auf dieses Team umschalten (damit Verlauf sichtbar ist)
+  selectChatTeam(teamId);
+}
+
+document.getElementById("gmPopupClose").onclick = () => {
+  document.getElementById("gmPopupOverlay").classList.remove("active");
+  popupTeamId = null;
+};
+
+document.getElementById("gmPopupSend").onclick = async () => {
+  if (!popupTeamId) return;
+  const text = document.getElementById("gmPopupReply").value.trim();
+  if (!text) return;
+
+  await fetch("/api/gm/messages", {
+    method: "POST",
+    headers: { "Content-Type": "application/json", "x-gm-token": GM_TOKEN },
+    body: JSON.stringify({ teamId: popupTeamId, text })
+  });
+
+  document.getElementById("gmPopupOverlay").classList.remove("active");
+  popupTeamId = null;
+
+  loadChat();
+};
 
 document.getElementById("chatSend").onclick = async () => {
   if (!currentChatTeam) return;
@@ -516,7 +607,13 @@ document.getElementById("resetRound").onclick = async () => {
   if (submissionTableBody) submissionTableBody.innerHTML = "";
 
   alert("Runde zurückgesetzt!");
-  loadAll();
+    loadAll();
+  setInterval(loadAll, 8000);
+
+  // Inbox Polling für Popups (neue Team Nachrichten)
+  loadInboxAndNotify();
+  if (inboxInterval) clearInterval(inboxInterval);
+  inboxInterval = setInterval(loadInboxAndNotify, 3000);
 };
 
 // ------------- ALLES NEU LADEN -------------
@@ -526,9 +623,22 @@ function loadAll() {
   loadSubmissions();
   loadChat();
 }
+<div id="gmPopupOverlay">
+  <div id="gmPopupBox">
+    <h3 id="gmPopupTitle">Neue Nachricht</h3>
+    <p id="gmPopupText"></p>
+    <input type="text" id="gmPopupReply" placeholder="Antwort schreiben…">
+    <div style="display:flex; gap:8px; margin-top:10px;">
+      <button class="btn-blue" id="gmPopupSend">Antworten</button>
+      <button class="btn-grey" id="gmPopupClose">Schliessen</button>
+    </div>
+  </div>
+</div>
+
 </script>
 </body>
 </html>
+
 
 
 
