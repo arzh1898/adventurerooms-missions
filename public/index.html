@@ -332,15 +332,18 @@
   Team: <strong id="teamBannerName">—</strong>
 </div>
 
+
   <h2 id="missionsTitle">Missionen</h2>
 
 <div id="legendBox">
-    <strong>Legende / Legend</strong><br>
-    🏠 Mission darf auch in einem Gebäude gemacht werden / Mission may also be done indoors<br>
-    📷 Foto-Mission / Photo mission<br>
-    🎥 Video-Mission / Video mission
-  </div>
-  <div id="missionsContainer"></div>
+  <strong>Legende / Legend</strong><br>
+  🏠 Mission darf auch in einem Gebäude gemacht werden / Mission may also be done indoors<br>
+  📷 Foto-Mission / Photo mission<br>
+  🎥 Video-Mission / Video mission
+</div>
+
+<div id="missionsContainer"></div>
+
 
   <!-- Extra Challenge -->
   <div class="mission-card">
@@ -542,7 +545,9 @@ document.getElementById("joinBtn").onclick = async () => {
 
   currentTeamId = j.teamId;
 currentTeamName = name;
-document.getElementById("teamBannerName").textContent = currentTeamName;
+const bn = document.getElementById("teamBannerName");
+if (bn) bn.textContent = currentTeamName;
+
 
   document.getElementById("joinScreen").style.display = "none";
   document.getElementById("mainScreen").style.display = "block";
@@ -840,6 +845,7 @@ applyLang();
 
 </body>
 </html>
+
 
 
 
