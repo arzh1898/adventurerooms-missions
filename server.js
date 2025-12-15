@@ -495,6 +495,33 @@ app.get('/api/gm/teams', gmAuth, (req, res) => {
   });
 });
 
+// --- GM: Inbox (letzte Nachricht pro Team) ---
+app.get('/api/gm/inbox', gmAuth, (req, res) => {
+  const sql = `
+    SELECT
+      t.id AS teamId,
+      t.name AS teamName,
+      m.id AS lastMessageId,
+      m.from_gm AS fromGm,
+      m.text AS text,
+      m.created_at AS created_at
+    FROM teams t
+    LEFT JOIN messages m
+      ON m.id = (
+        SELECT MAX(id)
+        FROM messages
+        WHERE team_id = t.id
+      )
+    ORDER BY t.name ASC
+  `;
+  db.all(sql, (err, rows) => {
+    if (err) {
+      console.error(err);
+      return res.status(500).json({ error: 'DB-Fehler beim Laden der Inbox' });
+    }
+    res.json(rows);
+  });
+});
 // --- GM: Scores / Rangliste ---
 app.get('/api/gm/scores', gmAuth, (req, res) => {
   const sql = `
@@ -712,4 +739,5 @@ app.post('/api/gm/reset', gmAuth, (req, res) => {
 app.listen(PORT, () => {
   console.log(`Server läuft auf http://localhost:${PORT}`);
 });
+
 
