@@ -248,7 +248,50 @@
       text-align: center;
       font-size: 20px;
       font-weight: bold;
+	}
+	@media (max-width: 600px) {
+      header {
+        flex-direction: column;
+        align-items: flex-start;
+        gap: 6px;
+      }
+
+      #headerLeft {
+        width: 100%;
+        justify-content: space-between;
+      }
+
+      #headerLeft span {
+        font-size: 16px;
+      }
+
+      #headerRight {
+        width: 100%;
+        justify-content: flex-start;
+      }
+
+      .mission-card {
+        padding: 12px;
+      }
+
+      .mission-title {
+        font-size: 16px;
+      }
+
+      .mission-desc {
+        font-size: 13px;
+      }
+
+      button.mainBtn {
+        font-size: 14px;
+        padding: 10px;
+      }
+
+      #chatBox {
+        margin-bottom: 80px; /* etwas Luft unten */
+      }
     }
+
   </style>
 </head>
 
@@ -708,13 +751,27 @@ async function loadChat() {
 
   box.scrollTop = box.scrollHeight;
 
-  if (newGM.length > 0) {
+    if (newGM.length > 0) {
     const last = newGM[newGM.length - 1];
+
+    // Sound abspielen
+    const audio = document.getElementById("chatSound");
+    if (audio) {
+      try {
+        audio.currentTime = 0;
+        audio.play().catch(() => {});
+      } catch (e) {
+        // falls Browser blockt – einfach ignorieren
+      }
+    }
+
+    // Popup anzeigen
     const overlay = document.getElementById("gmMsgOverlay");
     document.getElementById("gmMsgText").textContent = last.text;
     overlay.classList.add("active");
   }
-}
+
+  }
 
 document.getElementById("gmMsgOkBtn").onclick = () => {
   document.getElementById("gmMsgOverlay").classList.remove("active");
@@ -776,3 +833,4 @@ applyLang();
 
 </body>
 </html>
+
