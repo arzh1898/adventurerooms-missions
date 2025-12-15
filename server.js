@@ -517,7 +517,7 @@ app.get('/api/gm/scores', gmAuth, (req, res) => {
 // --- GM: Submissions-Liste ---
 app.get('/api/gm/submissions', gmAuth, (req, res) => {
   const sql = `
-    SELECT s.id,
+   SELECT s.id,
            s.filename,
            s.mimetype,
            s.status,
@@ -527,7 +527,9 @@ app.get('/api/gm/submissions', gmAuth, (req, res) => {
            t.name AS teamName,
            m.number AS missionNumber,
            m.title_de AS missionTitleDe,
-           m.title_en AS missionTitleEn
+           m.title_en AS missionTitleEn,
+           m.description_de AS missionDescDe,
+           m.description_en AS missionDescEn
     FROM submissions s
     JOIN teams t ON t.id = s.team_id
     JOIN missions m ON m.id = s.mission_id
@@ -710,3 +712,4 @@ app.post('/api/gm/reset', gmAuth, (req, res) => {
 app.listen(PORT, () => {
   console.log(`Server läuft auf http://localhost:${PORT}`);
 });
+
