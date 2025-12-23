@@ -180,32 +180,8 @@
 </div>
 
 <div id="mainPanel">
-
-  <!-- TIMER -->
-  <div class="section">
-    <h2>⏱ TIMER</h2>
-    <p id="timerStatus">Timer nicht gestartet.</p>
-    document.getElementById("timerStart").onclick = async () => {
-  await fetch("/api/gm/timer/start", {
-    method: "POST",
-    headers: { "Content-Type": "application/json", "x-gm-token": GM_TOKEN }
-  });
-  await loadTimer(); // startet flüssigen Timer
-};
-
-document.getElementById("timerStop").onclick = async () => {
-  await fetch("/api/gm/timer/stop", {
-    method: "POST",
-    headers: { "Content-Type": "application/json", "x-gm-token": GM_TOKEN }
   });
 
-  gmRemainingSeconds = null;
-  renderTimerStatus();
-
-  if (gmTimerInterval) {
-    clearInterval(gmTimerInterval);
-    gmTimerInterval = null;
-  }
 };
 
   </div>
@@ -269,6 +245,21 @@ document.getElementById("timerStop").onclick = async () => {
   </div>
 
 </div>
+</div>  <!-- Ende mainPanel -->
+
+<div id="gmPopupOverlay">
+  <div id="gmPopupBox">
+    <h3 id="gmPopupTitle">Neue Nachricht</h3>
+    <p id="gmPopupText"></p>
+    <input type="text" id="gmPopupReply" placeholder="Antwort schreiben…">
+    <div style="display:flex; gap:8px; margin-top:10px;">
+      <button class="btn-blue" id="gmPopupSend">Antworten</button>
+      <button class="btn-grey" id="gmPopupClose">Schliessen</button>
+    </div>
+  </div>
+</div>
+
+<script>
 
 <script>
 let GM_TOKEN = null;
@@ -333,6 +324,30 @@ async function loadTimer() {
     }
     return;
   }
+document.getElementById("timerStart").onclick = async () => {
+  await fetch("/api/gm/timer/start", {
+    method: "POST",
+    headers: { "Content-Type": "application/json", "x-gm-token": GM_TOKEN }
+  });
+  loadTimer();
+};
+
+document.getElementById("timerStop").onclick = async () => {
+  await fetch("/api/gm/timer/stop", {
+    method: "POST",
+    headers: { "Content-Type": "application/json", "x-gm-token": GM_TOKEN }
+  });
+
+  gmRemainingSeconds = null;
+  renderTimerStatus();
+
+  if (gmTimerInterval) {
+    clearInterval(gmTimerInterval);
+    gmTimerInterval = null;
+  }
+
+  loadTimer();
+};
 
   // Server ist die Wahrheit → setze Restzeit neu
   gmRemainingSeconds = data.remainingSeconds;
@@ -662,21 +677,14 @@ function loadAll() {
   loadSubmissions();
   loadChat();
 }
-<div id="gmPopupOverlay">
-  <div id="gmPopupBox">
-    <h3 id="gmPopupTitle">Neue Nachricht</h3>
-    <p id="gmPopupText"></p>
-    <input type="text" id="gmPopupReply" placeholder="Antwort schreiben…">
-    <div style="display:flex; gap:8px; margin-top:10px;">
-      <button class="btn-blue" id="gmPopupSend">Antworten</button>
-      <button class="btn-grey" id="gmPopupClose">Schliessen</button>
-    </div>
+
   </div>
 </div>
 
 </script>
 </body>
 </html>
+
 
 
 
