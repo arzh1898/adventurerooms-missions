@@ -2,7 +2,7 @@
 <html lang="de">
 <head>
   <meta charset="UTF-8" />
-  <title>GM Panel – AR Missions</title>
+  <title>GM Panel – AdventureRooms Missions</title>
   <meta name="viewport" content="width=device-width, initial-scale=1" />
 
   <style>
@@ -13,11 +13,140 @@
       color: #eee;
       padding: 0;
     }
+
+    header {
+      background: #e30613;
+      padding: 16px;
+      text-align: center;
+      font-size: 22px;
+      color: white;
+      font-weight: bold;
+      box-shadow: 0 3px 6px rgba(0,0,0,0.3);
+    }
+
+    #loginBox {
+      max-width: 320px;
+      background: #222;
+      padding: 20px;
+      border-radius: 12px;
+      margin: 50px auto;
+      text-align: center;
+      box-shadow: 0 4px 10px rgba(0,0,0,0.4);
+    }
+
+    #mainPanel {
+      padding: 16px;
+      display: none;
+    }
+
+    input[type="password"], input[type="text"], textarea, select {
+      width: 100%;
+      padding: 10px;
+      border-radius: 6px;
+      border: none;
+      margin-bottom: 12px;
+      background: #333;
+      color: white;
+      box-sizing: border-box;
+    }
+
+    button {
+      padding: 10px 14px;
+      border-radius: 6px;
+      border: none;
+      cursor: pointer;
+      margin: 5px;
+      font-weight: bold;
+    }
+
+    .btn-red   { background: #e30613; color: white; }
+    .btn-grey  { background: #444; color: white; }
+    .btn-green { background: #2fa34c; color: white; }
+    .btn-blue  { background: #008cff; color: white; }
+
+    h2 {
+      border-bottom: 1px solid #444;
+      padding-bottom: 4px;
+      margin-top: 0;
+    }
+
+    .section {
+      background: #1b1b1b;
+      padding: 16px;
+      margin-bottom: 16px;
+      border-radius: 10px;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.35);
+    }
+
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      margin-top: 8px;
+      font-size: 13px;
+    }
+
+    th, td {
+      border-bottom: 1px solid #333;
+      padding: 8px;
+      vertical-align: top;
+      text-align: left;
+    }
+
+    td img, td video {
+      max-width: 220px;
+      border-radius: 8px;
+      display: block;
+    }
+
     .gm-mission-desc {
       font-size: 12px;
       color: #ccc;
       margin-top: 4px;
+      line-height: 1.35;
     }
+
+    .chat-box {
+      background: #111;
+      padding: 10px;
+      border-radius: 8px;
+      max-height: 260px;
+      overflow-y: auto;
+      font-size: 13px;
+      border: 1px solid #2a2a2a;
+    }
+
+    .chat-line {
+      margin-bottom: 6px;
+      line-height: 1.35;
+    }
+
+    .chat-line b {
+      color: #ffd166;
+    }
+
+    .commentInput {
+      width: 100%;
+      padding: 8px 10px;
+      border-radius: 6px;
+      border: none;
+      background: #333;
+      color: #fff;
+      font-size: 12px;
+      box-sizing: border-box;
+    }
+
+    #timerStatus {
+      font-size: 18px;
+      margin: 0 0 10px 0;
+      font-weight: bold;
+      color: #ffd166;
+    }
+
+    @media (max-width: 700px) {
+      td img, td video { max-width: 140px; }
+    }
+
+    /* Popup Overlay */
     #gmPopupOverlay{
       position: fixed;
       inset: 0;
@@ -48,129 +177,13 @@
       border:none;
       background:#333;
       color:#fff;
-    }
-
-    header {
-      background: #e30613;
-      padding: 16px;
-      text-align: center;
-      font-size: 22px;
-      color: white;
-      font-weight: bold;
-      box-shadow: 0 3px 6px rgba(0,0,0,0.3);
-    }
-
-    #loginBox {
-      max-width: 320px;
-      background: #222;
-      padding: 20px;
-      border-radius: 12px;
-      margin: 50px auto;
-      text-align: center;
-      box-shadow: 0 4px 10px rgba(0,0,0,0.4);
-    }
-
-    input[type="password"], input[type="text"], textarea, select {
-      width: 100%;
-      padding: 10px;
-      border-radius: 6px;
-      border: none;
-      margin-bottom: 12px;
-      background: #333;
-      color: white;
-    }
-
-    button {
-      padding: 10px 14px;
-      border-radius: 6px;
-      border: none;
-      cursor: pointer;
-      margin: 5px;
-      font-weight: bold;
-    }
-
-    .btn-red { background: #e30613; color: white; }
-    .btn-grey { background: #444; color: white; }
-    .btn-green { background: #2fa34c; color: white; }
-    .btn-blue { background: #008cff; color: white; }
-
-    #mainPanel {
-      padding: 16px;
-      display: none;
-    }
-
-    h2 {
-      border-bottom: 1px solid #444;
-      padding-bottom: 4px;
-    }
-
-    .section {
-      background: #1b1b1b;
-      padding: 16px;
-      margin-bottom: 16px;
-      border-radius: 8px;
-    }
-
-    table {
-      width: 100%;
-      border-collapse: collapse;
-      margin-top: 8px;
-      font-size: 13px;
-    }
-
-    th, td {
-      border-bottom: 1px solid #333;
-      padding: 6px 8px;
-      vertical-align: top;
-    }
-
-    td img, video {
-      max-width: 200px;
-      border-radius: 6px;
-    }
-
-    .chat-box {
-      background: #222;
-      padding: 10px;
-      border-radius: 8px;
-      max-height: 240px;
-      overflow-y: auto;
-      font-size: 13px;
-    }
-
-    .chat-line {
-      margin-bottom: 6px;
-    }
-
-    .chat-line b {
-      color: #ffd166;
-    }
-
-    .commentInput {
-      width: 100%;
-      padding: 6px 8px;
-      border-radius: 4px;
-      border: none;
-      background: #333;
-      color: #fff;
-      font-size: 12px;
-    }
-
-    #timerStatus {
-      font-size: 14px;
-      margin-bottom: 8px;
-    }
-
-    @media (max-width: 700px) {
-      td img, video {
-        max-width: 120px;
-      }
+      box-sizing: border-box;
     }
   </style>
 </head>
 
 <body>
-<header>GAME MASTER PANEL – AR Missions</header>
+<header>GAME MASTER PANEL – AdventureRooms Missions</header>
 
 <div id="loginBox">
   <h3>GM Login</h3>
@@ -180,10 +193,13 @@
 </div>
 
 <div id="mainPanel">
-  });
 
-};
-
+  <!-- TIMER -->
+  <div class="section">
+    <h2>⏱ TIMER</h2>
+    <p id="timerStatus">Timer nicht gestartet.</p>
+    <button class="btn-blue" id="timerStart">Start</button>
+    <button class="btn-grey" id="timerStop">Stop</button>
   </div>
 
   <!-- BROADCAST -->
@@ -194,12 +210,12 @@
     <p id="broadcastStatus"></p>
   </div>
 
-  <!-- TEAMLISTE / RANGLISTE -->
+  <!-- TEAMS / RANGLISTE -->
   <div class="section">
     <h2>👥 Teams & Rangliste (aktuelle Runde)</h2>
     <table id="teamTable">
       <thead>
-        <tr><th>Team</th><th>Punkte</th><th>Aktion</th></tr>
+        <tr><th>Team</th><th>Punkte (nur GM)</th><th>Aktion</th></tr>
       </thead>
       <tbody></tbody>
     </table>
@@ -243,10 +259,9 @@
       Die Missions bleiben bestehen.
     </p>
   </div>
-
 </div>
-</div>  <!-- Ende mainPanel -->
 
+<!-- Popup Overlay -->
 <div id="gmPopupOverlay">
   <div id="gmPopupBox">
     <h3 id="gmPopupTitle">Neue Nachricht</h3>
@@ -260,17 +275,18 @@
 </div>
 
 <script>
-
-<script>
 let GM_TOKEN = null;
 let currentChatTeam = null;
+
 let inboxInterval = null;
 let lastSeenTeamMsgId = {}; // { teamId: lastMessageId }
 let popupTeamId = null;
+
+// Timer state
 let gmTimerInterval = null;
 let gmRemainingSeconds = null;
 
-// ------------- LOGIN -------------
+// ---------------- LOGIN ----------------
 document.getElementById("loginBtn").onclick = async () => {
   const pw = document.getElementById("password").value.trim();
   const res = await fetch("/api/gm/login", {
@@ -279,7 +295,7 @@ document.getElementById("loginBtn").onclick = async () => {
     body: JSON.stringify({ password: pw })
   });
 
-  const data = await res.json();
+  const data = await res.json().catch(() => ({}));
   if (!res.ok) {
     document.getElementById("loginStatus").textContent = "Falsches Passwort!";
     return;
@@ -289,11 +305,20 @@ document.getElementById("loginBtn").onclick = async () => {
   document.getElementById("loginBox").style.display = "none";
   document.getElementById("mainPanel").style.display = "block";
 
-  loadAll();
-  setInterval(loadAll, 8000); // automatisch alle 8s aktualisieren
+  await loadAll();
+  setInterval(loadAll, 8000);
+
+  // Inbox Polling für Popups (neue Team Nachrichten)
+  await loadInboxAndNotify();
+  if (inboxInterval) clearInterval(inboxInterval);
+  inboxInterval = setInterval(loadInboxAndNotify, 3000);
+
+  // Timer initial + Sync
+  await loadTimer();
+  setInterval(loadTimer, 10000);
 };
 
-// ------------- TIMER -------------
+// ---------------- TIMER ----------------
 function renderTimerStatus() {
   const box = document.getElementById("timerStatus");
   if (!box) return;
@@ -312,7 +337,7 @@ function renderTimerStatus() {
 
 async function loadTimer() {
   const res = await fetch("/api/timer");
-  const data = await res.json();
+  const data = await res.json().catch(() => ({ running:false }));
 
   if (!data.running) {
     gmRemainingSeconds = null;
@@ -324,6 +349,22 @@ async function loadTimer() {
     }
     return;
   }
+
+  gmRemainingSeconds = data.remainingSeconds;
+  renderTimerStatus();
+
+  if (!gmTimerInterval) {
+    gmTimerInterval = setInterval(() => {
+      if (gmRemainingSeconds === null) return;
+      if (gmRemainingSeconds > 0) {
+        gmRemainingSeconds--;
+        renderTimerStatus();
+      }
+    }, 1000);
+  }
+}
+
+// Timer Buttons
 document.getElementById("timerStart").onclick = async () => {
   await fetch("/api/gm/timer/start", {
     method: "POST",
@@ -349,23 +390,7 @@ document.getElementById("timerStop").onclick = async () => {
   loadTimer();
 };
 
-  // Server ist die Wahrheit → setze Restzeit neu
-  gmRemainingSeconds = data.remainingSeconds;
-  renderTimerStatus();
-
-  // Lokales "flüssiges" Runterzählen starten (nur einmal)
-  if (!gmTimerInterval) {
-    gmTimerInterval = setInterval(() => {
-      if (gmRemainingSeconds === null) return;
-      if (gmRemainingSeconds > 0) {
-        gmRemainingSeconds--;
-        renderTimerStatus();
-      }
-    }, 1000);
-  }
-}
-
-// ------------- BROADCAST -------------
+// ---------------- BROADCAST ----------------
 document.getElementById("broadcastSend").onclick = async () => {
   const text = document.getElementById("broadcastText").value.trim();
   if (!text) return;
@@ -384,32 +409,25 @@ document.getElementById("broadcastSend").onclick = async () => {
   }
 };
 
-// ------------- TEAMS + RANGLISTE -------------
+// ---------------- TEAMS + RANGLISTE ----------------
 async function loadTeams() {
-  const teamRes = await fetch("/api/gm/teams", {
-    headers: { "x-gm-token": GM_TOKEN }
-  });
+  const teamRes = await fetch("/api/gm/teams", { headers: { "x-gm-token": GM_TOKEN } });
   const teams = await teamRes.json();
 
-  const scoreRes = await fetch("/api/gm/scores", {
-    headers: { "x-gm-token": GM_TOKEN }
-  });
+  const scoreRes = await fetch("/api/gm/scores", { headers: { "x-gm-token": GM_TOKEN } });
   const scores = await scoreRes.json();
 
   const tbody = document.querySelector("#teamTable tbody");
   tbody.innerHTML = "";
 
   teams.forEach(team => {
-    const score = scores.find(s => s.teamId == team.id)?.points || 0;
-
+    const score = scores.find(s => String(s.teamId) === String(team.id))?.points || 0;
     tbody.insertAdjacentHTML(
       "beforeend",
       `<tr>
         <td>${team.name}</td>
         <td>${score}</td>
-        <td>
-          <button class="btn-blue" onclick="selectChatTeam(${team.id})">Chat</button>
-        </td>
+        <td><button class="btn-blue" onclick="selectChatTeam(${team.id})">Chat</button></td>
       </tr>`
     );
   });
@@ -420,22 +438,23 @@ async function loadTeams() {
     sel.insertAdjacentHTML("beforeend", `<option value="${t.id}">${t.name}</option>`);
   });
 
-  if (!currentChatTeam && teams.length > 0) {
-    currentChatTeam = teams[0].id;
+  if ((!currentChatTeam || !teams.find(t => String(t.id) === String(currentChatTeam))) && teams.length > 0) {
+    currentChatTeam = String(teams[0].id);
     sel.value = currentChatTeam;
     loadChat();
   }
 }
 
-// ------------- CHAT -------------
+// ---------------- CHAT ----------------
 function selectChatTeam(id) {
-  currentChatTeam = id;
-  document.getElementById("chatTeamSelect").value = id;
+  currentChatTeam = String(id);
+  document.getElementById("chatTeamSelect").value = currentChatTeam;
   loadChat();
 }
+window.selectChatTeam = selectChatTeam;
 
 document.getElementById("chatTeamSelect").onchange = (e) => {
-  currentChatTeam = e.target.value;
+  currentChatTeam = String(e.target.value);
   loadChat();
 };
 
@@ -452,71 +471,11 @@ async function loadChat() {
 
   msgs.forEach(m => {
     const sender = m.from_gm ? "GM" : "Team";
-    box.insertAdjacentHTML(
-      "beforeend",
-      `<div class="chat-line"><b>${sender}:</b> ${m.text}</div>`
-    );
+    box.insertAdjacentHTML("beforeend", `<div class="chat-line"><b>${sender}:</b> ${m.text}</div>`);
   });
 
   box.scrollTop = box.scrollHeight;
 }
-async function loadInboxAndNotify() {
-  if (!GM_TOKEN) return;
-
-  const res = await fetch("/api/gm/inbox", {
-    headers: { "x-gm-token": GM_TOKEN }
-  });
-  if (!res.ok) return;
-  const rows = await res.json();
-
-  // Prüfen: neue Team-Nachrichten?
-  rows.forEach(r => {
-    if (!r.lastMessageId) return;
-    const teamId = r.teamId;
-
-    // Nur Nachrichten vom Team (fromGm = 0)
-    if (r.fromGm === 1) return;
-
-    const prev = lastSeenTeamMsgId[teamId] || 0;
-    if (r.lastMessageId > prev) {
-      lastSeenTeamMsgId[teamId] = r.lastMessageId;
-      showGmPopup(teamId, r.teamName, r.text);
-    }
-  });
-}
-
-function showGmPopup(teamId, teamName, text) {
-  popupTeamId = teamId;
-  document.getElementById("gmPopupTitle").textContent = `Neue Nachricht von ${teamName}`;
-  document.getElementById("gmPopupText").textContent = text;
-  document.getElementById("gmPopupReply").value = "";
-  document.getElementById("gmPopupOverlay").classList.add("active");
-
-  // Chat direkt auf dieses Team umschalten (damit Verlauf sichtbar ist)
-  selectChatTeam(teamId);
-}
-
-document.getElementById("gmPopupClose").onclick = () => {
-  document.getElementById("gmPopupOverlay").classList.remove("active");
-  popupTeamId = null;
-};
-
-document.getElementById("gmPopupSend").onclick = async () => {
-  if (!popupTeamId) return;
-  const text = document.getElementById("gmPopupReply").value.trim();
-  if (!text) return;
-
-  await fetch("/api/gm/messages", {
-    method: "POST",
-    headers: { "Content-Type": "application/json", "x-gm-token": GM_TOKEN },
-    body: JSON.stringify({ teamId: popupTeamId, text })
-  });
-
-  document.getElementById("gmPopupOverlay").classList.remove("active");
-  popupTeamId = null;
-
-  loadChat();
-};
 
 document.getElementById("chatSend").onclick = async () => {
   if (!currentChatTeam) return;
@@ -527,7 +486,7 @@ document.getElementById("chatSend").onclick = async () => {
   const res = await fetch("/api/gm/messages", {
     method: "POST",
     headers: { "Content-Type": "application/json", "x-gm-token": GM_TOKEN },
-    body: JSON.stringify({ teamId: currentChatTeam, text })
+    body: JSON.stringify({ teamId: Number(currentChatTeam), text })
   });
 
   if (res.ok) {
@@ -546,13 +505,70 @@ document.getElementById("chatReset").onclick = async () => {
   await fetch("/api/gm/chat/reset-team", {
     method: "POST",
     headers: { "Content-Type": "application/json", "x-gm-token": GM_TOKEN },
-    body: JSON.stringify({ teamId: currentChatTeam })
+    body: JSON.stringify({ teamId: Number(currentChatTeam) })
   });
 
   loadChat();
 };
 
-// ------------- SUBMISSIONS -------------
+// ---------------- INBOX POPUP ----------------
+async function loadInboxAndNotify() {
+  if (!GM_TOKEN) return;
+
+  const res = await fetch("/api/gm/inbox", {
+    headers: { "x-gm-token": GM_TOKEN }
+  });
+  if (!res.ok) return;
+  const rows = await res.json();
+
+  rows.forEach(r => {
+    if (!r.lastMessageId) return;
+    const teamId = String(r.teamId);
+
+    // nur Team->GM
+    if (r.fromGm === 1) return;
+
+    const prev = lastSeenTeamMsgId[teamId] || 0;
+    if (r.lastMessageId > prev) {
+      lastSeenTeamMsgId[teamId] = r.lastMessageId;
+      showGmPopup(teamId, r.teamName, r.text);
+    }
+  });
+}
+
+function showGmPopup(teamId, teamName, text) {
+  popupTeamId = String(teamId);
+  document.getElementById("gmPopupTitle").textContent = `Neue Nachricht von ${teamName}`;
+  document.getElementById("gmPopupText").textContent = text;
+  document.getElementById("gmPopupReply").value = "";
+  document.getElementById("gmPopupOverlay").classList.add("active");
+
+  selectChatTeam(teamId);
+}
+
+document.getElementById("gmPopupClose").onclick = () => {
+  document.getElementById("gmPopupOverlay").classList.remove("active");
+  popupTeamId = null;
+};
+
+document.getElementById("gmPopupSend").onclick = async () => {
+  if (!popupTeamId) return;
+
+  const text = document.getElementById("gmPopupReply").value.trim();
+  if (!text) return;
+
+  await fetch("/api/gm/messages", {
+    method: "POST",
+    headers: { "Content-Type": "application/json", "x-gm-token": GM_TOKEN },
+    body: JSON.stringify({ teamId: Number(popupTeamId), text })
+  });
+
+  document.getElementById("gmPopupOverlay").classList.remove("active");
+  popupTeamId = null;
+  loadChat();
+};
+
+// ---------------- SUBMISSIONS ----------------
 async function loadSubmissions() {
   const res = await fetch("/api/gm/submissions", {
     headers: { "x-gm-token": GM_TOKEN }
@@ -563,11 +579,11 @@ async function loadSubmissions() {
   tbody.innerHTML = "";
 
   list.forEach(s => {
-    const media =
-      s.mimetype.startsWith("image")
-        ? `<img src="/uploads/${s.filename}">`
-        : `<video src="/uploads/${s.filename}" controls></video>`;
-tbody.insertAdjacentHTML(
+    const media = s.mimetype && s.mimetype.startsWith("image")
+      ? `<img src="/uploads/${s.filename}" alt="upload">`
+      : `<video src="/uploads/${s.filename}" controls></video>`;
+
+    tbody.insertAdjacentHTML(
       "beforeend",
       `<tr data-sub-id="${s.id}">
         <td>${s.teamName}</td>
@@ -583,10 +599,8 @@ tbody.insertAdjacentHTML(
                  value="${s.comment || ""}">
         </td>
         <td>
-          <button class="btn-green"
-                  onclick="review(${s.id}, 'approved', ${s.teamId}, 'M${s.missionNumber}')">✔</button>
-          <button class="btn-red"
-                  onclick="review(${s.id}, 'rejected', ${s.teamId}, 'M${s.missionNumber}')">✖</button>
+          <button class="btn-green" onclick="review(${s.id}, 'approved', ${s.teamId}, 'M${s.missionNumber}')">✔</button>
+          <button class="btn-red" onclick="review(${s.id}, 'rejected', ${s.teamId}, 'M${s.missionNumber}')">✖</button>
         </td>
       </tr>`
     );
@@ -594,7 +608,6 @@ tbody.insertAdjacentHTML(
 }
 
 async function review(id, status, teamId, missionLabel) {
-  // Kommentar aus der Zeile holen
   const row = document.querySelector(`tr[data-sub-id="${id}"]`);
   let comment = "";
   if (row) {
@@ -602,43 +615,33 @@ async function review(id, status, teamId, missionLabel) {
     if (inp) comment = inp.value.trim();
   }
 
-  // Bei "rejected" MUSS ein Kommentar vorhanden sein
   if (status === "rejected" && !comment) {
     alert("Bitte Kommentar eingeben, warum die Mission abgelehnt wurde.");
     return;
   }
 
-  // Bewertung speichern (inkl. Kommentar)
   await fetch(`/api/gm/submissions/${id}/review`, {
     method: "POST",
-    headers: {
-      "Content-Type": "application/json",
-      "x-gm-token": GM_TOKEN
-    },
+    headers: { "Content-Type": "application/json", "x-gm-token": GM_TOKEN },
     body: JSON.stringify({ status, comment })
   });
 
-  // Wenn abgelehnt: automatisch eine Chat-Nachricht an das Team schicken
   if (status === "rejected" && teamId) {
     const text = `Mission ${missionLabel} wurde abgelehnt: ${comment}`;
     await fetch("/api/gm/messages", {
       method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        "x-gm-token": GM_TOKEN
-      },
+      headers: { "Content-Type": "application/json", "x-gm-token": GM_TOKEN },
       body: JSON.stringify({ teamId, text })
     });
   }
 
   loadSubmissions();
   loadTeams();
-  if (teamId && currentChatTeam == teamId) {
-    loadChat();
-  }
+  if (teamId && String(currentChatTeam) === String(teamId)) loadChat();
 }
+window.review = review;
 
-// ------------- RUNDENRESET -------------
+// ---------------- RESET ROUND ----------------
 document.getElementById("resetRound").onclick = async () => {
   if (!confirm("Sicher? Ganze Runde wirklich zurücksetzen?")) return;
 
@@ -647,48 +650,36 @@ document.getElementById("resetRound").onclick = async () => {
     headers: { "x-gm-token": GM_TOKEN }
   });
 
-  // Frontend-Zustand ebenfalls leeren
+  // UI leeren
   currentChatTeam = null;
+  document.getElementById("chatMessages").innerHTML = "";
+  document.getElementById("chatTeamSelect").innerHTML = "";
+  document.querySelector("#teamTable tbody").innerHTML = "";
+  document.querySelector("#submissionTable tbody").innerHTML = "";
 
-  const chatBox = document.getElementById("chatMessages");
-  const chatSelect = document.getElementById("chatTeamSelect");
-  const teamTableBody = document.querySelector("#teamTable tbody");
-  const submissionTableBody = document.querySelector("#submissionTable tbody");
-
-  if (chatBox) chatBox.innerHTML = "";
-  if (chatSelect) chatSelect.innerHTML = "";
-  if (teamTableBody) teamTableBody.innerHTML = "";
-  if (submissionTableBody) submissionTableBody.innerHTML = "";
+  // Timer stoppen
+  gmRemainingSeconds = null;
+  renderTimerStatus();
+  if (gmTimerInterval) { clearInterval(gmTimerInterval); gmTimerInterval = null; }
 
   alert("Runde zurückgesetzt!");
-    loadAll();
-  setInterval(loadAll, 8000);
+  loadAll();
 
-  // Inbox Polling für Popups (neue Team Nachrichten)
-  loadInboxAndNotify();
+  // Inbox polling neu starten
+  await loadInboxAndNotify();
   if (inboxInterval) clearInterval(inboxInterval);
   inboxInterval = setInterval(loadInboxAndNotify, 3000);
 };
 
-// ------------- ALLES NEU LADEN -------------
-function loadAll() {
-  loadTimer();
-  loadTeams();
-  loadSubmissions();
-  loadChat();
+// ---------------- LOAD ALL ----------------
+async function loadAll() {
+  if (!GM_TOKEN) return;
+  await loadTimer();
+  await loadTeams();
+  await loadSubmissions();
+  await loadChat();
 }
-
-  </div>
-</div>
-
 </script>
 </body>
 </html>
-
-
-
-
-
-
-
 
