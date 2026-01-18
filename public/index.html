@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>AR Missions</title>
+  <title>AdventureRooms Missions</title>
 
   <style>
     :root {
@@ -89,6 +89,7 @@
       background: var(--grey);
       color: var(--white);
       font-size: 16px;
+      box-sizing: border-box;
     }
 
     button.mainBtn {
@@ -103,6 +104,24 @@
       font-size: 16px;
       margin: 8px 0;
       cursor: pointer;
+    }
+
+    /* Secondary buttons for camera/gallery */
+    button.secondaryBtn {
+      width: 100%;
+      padding: 12px;
+      background: transparent;
+      color: var(--white);
+      border-radius: 8px;
+      border: 1px solid rgba(255,255,255,0.35);
+      text-align: center;
+      font-weight: bold;
+      font-size: 16px;
+      margin: 8px 0;
+      cursor: pointer;
+    }
+    button.secondaryBtn:hover {
+      background: rgba(255,255,255,0.08);
     }
 
     .mission-card {
@@ -143,17 +162,10 @@
       font-size: 12px;
       margin-top: 6px;
     }
-    .mission-status-pending {
-      color: #ffcc66;
-    }
-    .mission-status-approved {
-      color: #4ade80;
-      font-weight: bold;
-    }
-    .mission-status-rejected {
-      color: #ef4444;
-      font-weight: bold;
-    }
+    .mission-status-pending { color: #ffcc66; }
+    .mission-status-approved { color: #4ade80; font-weight: bold; }
+    .mission-status-rejected { color: #ef4444; font-weight: bold; }
+
     #legendBox {
       background: #1b1b1b;
       padding: 8px 10px;
@@ -162,12 +174,19 @@
       margin-bottom: 12px;
       box-shadow: 0 2px 6px rgba(0,0,0,0.3);
     }
+
     .status {
       font-size: 13px;
       margin-left: 4px;
     }
     .status.ok { color: #4ade80; }
     .status.err { color: #ef4444; }
+
+    .fileHint {
+      font-size: 12px;
+      opacity: 0.85;
+      margin-top: 4px;
+    }
 
     /* Chat */
     #chatBox {
@@ -186,9 +205,7 @@
       margin-bottom: 10px;
       font-size: 14px;
     }
-    .chat-line {
-      margin-bottom: 6px;
-    }
+    .chat-line { margin-bottom: 6px; }
     .chat-line .sender {
       font-weight: bold;
       color: #ffd166;
@@ -223,9 +240,7 @@
       box-shadow: 0 10px 30px rgba(0,0,0,0.4);
     }
 
-    .overlayBox h3 {
-      margin-top: 0;
-    }
+    .overlayBox h3 { margin-top: 0; }
 
     .overlayBox button {
       width: auto;
@@ -248,52 +263,32 @@
       text-align: center;
       font-size: 20px;
       font-weight: bold;
-	}
-	@media (max-width: 600px) {
+    }
+
+    @media (max-width: 600px) {
       header {
         flex-direction: column;
         align-items: flex-start;
         gap: 6px;
       }
-
       #headerLeft {
         width: 100%;
         justify-content: space-between;
       }
-
-      #headerLeft span {
-        font-size: 16px;
-      }
-
+      #headerLeft span { font-size: 16px; }
       #headerRight {
         width: 100%;
         justify-content: flex-start;
       }
-
-      .mission-card {
-        padding: 12px;
-      }
-
-      .mission-title {
-        font-size: 16px;
-      }
-
-      .mission-desc {
-        font-size: 13px;
-      }
-
-      button.mainBtn {
+      .mission-card { padding: 12px; }
+      .mission-title { font-size: 16px; }
+      .mission-desc { font-size: 13px; }
+      button.mainBtn, button.secondaryBtn {
         font-size: 14px;
         padding: 10px;
       }
-
-      #chatBox {
-        margin-bottom: 80px; /* etwas Luft unten */
-      }
+      #chatBox { margin-bottom: 80px; }
     }
- 
-  
-
   </style>
 </head>
 
@@ -301,7 +296,6 @@
 
 <header>
   <div id="headerLeft">
-    <!-- Logo-Datei bei Bedarf anpassen -->
     <img src="/ARlogo.jpg" alt="AdventureRooms Logo">
     <span>AdventureRooms Missions</span>
   </div>
@@ -328,22 +322,21 @@
 <div id="mainScreen">
 
   <div id="timerArea">75:00</div>
-<div id="teamBanner" style="margin:-10px 0 14px 0; font-size:14px; opacity:0.9;">
-  Team: <strong id="teamBannerName">—</strong>
-</div>
 
+  <div id="teamBanner" style="margin:-10px 0 14px 0; font-size:14px; opacity:0.9;">
+    Team: <strong id="teamBannerName">—</strong>
+  </div>
 
   <h2 id="missionsTitle">Missionen</h2>
 
-<div id="legendBox">
-  <strong>Legende / Legend</strong><br>
-  🏠 Mission darf auch in einem Gebäude gemacht werden / Mission may also be done indoors<br>
-  📷 Foto-Mission / Photo mission<br>
-  🎥 Video-Mission / Video mission
-</div>
+  <div id="legendBox">
+    <strong>Legende / Legend</strong><br>
+    🏠 Mission darf auch in einem Gebäude gemacht werden / Mission may also be done indoors<br>
+    📷 Foto-Mission / Photo mission<br>
+    🎥 Video-Mission / Video mission
+  </div>
 
-<div id="missionsContainer"></div>
-
+  <div id="missionsContainer"></div>
 
   <!-- Extra Challenge -->
   <div class="mission-card">
@@ -355,13 +348,24 @@
       </div>
       <div class="symbols">⭐</div>
     </div>
+
     <div class="mission-desc" id="extraDesc">
       Jedes Team soll das teuerste Gericht einer Speisekarte finden.
       Wenn es teurer ist als bei den anderen Teams → Sieg!
     </div>
+
     <form id="extraForm">
-      <input type="file" id="extraFile" accept="image/*,video/*" required>
-      <button type="submit">Upload</button>
+      <!-- Camera -->
+      <input type="file" id="extraCamera" accept="image/*,video/*" capture="environment" hidden>
+      <!-- Gallery -->
+      <input type="file" id="extraGallery" accept="image/*,video/*" hidden>
+
+      <button type="button" class="secondaryBtn" id="extraCamBtn">📷 Foto / Video aufnehmen</button>
+      <button type="button" class="secondaryBtn" id="extraGalBtn">📁 Aus Galerie wählen</button>
+
+      <div class="fileHint" id="extraFileHint"></div>
+
+      <button type="submit" class="mainBtn">⬆️ Upload</button>
       <span id="extraUploadMsg" class="status"></span>
     </form>
   </div>
@@ -384,7 +388,7 @@
   </div>
 </div>
 
-<!-- GM rejection popup -->
+<!-- GM message popup -->
 <div id="gmMsgOverlay">
   <div class="overlayBox">
     <h3 id="gmMsgTitle">Nachricht vom Game Master</h3>
@@ -401,6 +405,11 @@
     <button id="rulesCloseBtn">OK</button>
   </div>
 </div>
+
+<!-- Optional: Sound for GM messages -->
+<audio id="chatSound" preload="auto">
+  <source src="/bing.mp3" type="audio/mpeg">
+</audio>
 
 <script>
 let currentLang = "de";
@@ -427,8 +436,8 @@ const i18n = {
     chatSend: "Senden",
     chatInputPlaceholder: "Nachricht eingeben...",
     extraDesc:
-     "Jedes Team soll das teuerste Gericht einer Speisekarte finden. Ist dieses teurer als jenes der anderen Teams, gewinnt dieses Team die Extra Challenge.",
-	missionStatus: {
+      "Jedes Team soll das teuerste Gericht einer Speisekarte finden. Ist dieses teurer als jenes der anderen Teams, gewinnt dieses Team die Extra Challenge.",
+    missionStatus: {
       pending: "⏳ Eingereicht (wartet auf Prüfung)",
       approved: "✅ Erfüllt",
       rejected: "✖ Nicht akzeptiert"
@@ -501,7 +510,6 @@ function applyLang() {
 document.getElementById("langSelect").onchange = (e) => {
   currentLang = e.target.value;
   applyLang();
-  // Missionskarten neu in der gewählten Sprache aufbauen
   if (currentTeamId) {
     loadMissions();
     loadMissionStatus();
@@ -536,29 +544,39 @@ document.getElementById("joinBtn").onclick = async () => {
     body: JSON.stringify({ teamName: name })
   });
 
-  const j = await r.json();
-
+  const j = await r.json().catch(() => ({}));
   if (!r.ok) {
     alert("Fehler beim Join.");
     return;
   }
 
   currentTeamId = j.teamId;
-currentTeamName = name;
-const bn = document.getElementById("teamBannerName");
-if (bn) bn.textContent = currentTeamName;
-
+  currentTeamName = name;
+  const bn = document.getElementById("teamBannerName");
+  if (bn) bn.textContent = currentTeamName;
 
   document.getElementById("joinScreen").style.display = "none";
   document.getElementById("mainScreen").style.display = "block";
 
+  applyLang();
   loadMissions();
   startTimerPolling();
   startMissionStatusPolling();
   startChatPolling();
   startBroadcastPolling();
-  applyLang();
 };
+
+// ---------- FILE PICKER HELPERS ----------
+function setFileHint(div, text) {
+  const hint = div.querySelector(".fileHint");
+  if (hint) hint.textContent = text || "";
+}
+
+function getChosenFile(formElem) {
+  const cam = formElem.querySelector(".file-camera");
+  const gal = formElem.querySelector(".file-gallery");
+  return (cam && cam.files && cam.files[0]) || (gal && gal.files && gal.files[0]) || null;
+}
 
 // LOAD MISSIONS
 async function loadMissions() {
@@ -569,23 +587,18 @@ async function loadMissions() {
   cont.innerHTML = "";
 
   missions.forEach(m => {
-    if (m.number === 21) return; // Extra Challenge separat
+    if (m.number === 21) return;
 
     const title = currentLang === "de" ? m.title_de : m.title_en;
-    const desc = currentLang === "de" ? m.description_de : m.description_en;
+    const desc  = currentLang === "de" ? m.description_de : m.description_en;
 
-        // Kamera-Typ bestimmen (Foto oder Video)
-    let camIcon = "📷"; // Standard: Foto
-    const videoMissions = [11, 12, 13, 15, 17]; // hier sind Video-Missionen
-    if (videoMissions.includes(m.number)) {
-      camIcon = "🎥";
-    }
+    let camIcon = "📷";
+    const videoMissions = [11, 12, 13, 15, 17];
+    if (videoMissions.includes(m.number)) camIcon = "🎥";
 
-    // Haus-Symbol für Missionen, die auch drinnen erlaubt sind
     const indoorMissions = [3, 6, 8, 9, 10, 12, 16];
     const hasHouse = indoorMissions.includes(m.number);
 
-    // Endgültige Icon-Kombination
     let icons = hasHouse ? `🏠 ${camIcon}` : camIcon;
 
     const div = document.createElement("div");
@@ -603,19 +616,41 @@ async function loadMissions() {
       <div class="mission-desc">${desc}</div>
 
       <form class="mission-form" data-mission-id="${m.id}">
-        <input type="file" accept="image/*,video/*" required>
-        <button type="submit" class="mainBtn">Upload</button>
+        <input type="file" class="file-camera" accept="image/*,video/*" capture="environment" hidden>
+        <input type="file" class="file-gallery" accept="image/*,video/*" hidden>
+
+        <button type="button" class="secondaryBtn btnCamera">📷 Foto / Video aufnehmen</button>
+        <button type="button" class="secondaryBtn btnGallery">📁 Aus Galerie wählen</button>
+
+        <div class="fileHint"></div>
+
+        <button type="submit" class="mainBtn">⬆️ Upload</button>
         <span class="status"></span>
       </form>
     `;
 
     cont.appendChild(div);
 
-    div.querySelector("form").addEventListener("submit", async (ev) => {
+    const formElem = div.querySelector("form");
+    const camInput = div.querySelector(".file-camera");
+    const galInput = div.querySelector(".file-gallery");
+
+    div.querySelector(".btnCamera").onclick = () => camInput.click();
+    div.querySelector(".btnGallery").onclick = () => galInput.click();
+
+    camInput.onchange = () => {
+      const f = camInput.files[0];
+      setFileHint(div, f ? `Gewählt: ${f.name}` : "");
+    };
+    galInput.onchange = () => {
+      const f = galInput.files[0];
+      setFileHint(div, f ? `Gewählt: ${f.name}` : "");
+    };
+
+    formElem.addEventListener("submit", async (ev) => {
       ev.preventDefault();
-      const formElem = ev.target;
-      const fileInput = formElem.querySelector("input[type=file]");
-      const file = fileInput.files[0];
+
+      const file = getChosenFile(formElem);
       if (!file) return;
 
       const fd = new FormData();
@@ -624,13 +659,15 @@ async function loadMissions() {
       fd.append("missionId", m.id);
 
       const t = i18n[currentLang];
-
       const resp = await fetch("/api/submissions", { method: "POST", body: fd });
+
       const statusSpan = formElem.querySelector(".status");
       if (resp.ok) {
         statusSpan.textContent = t.uploadOk;
         statusSpan.className = "status ok";
-        fileInput.value = "";
+        camInput.value = "";
+        galInput.value = "";
+        setFileHint(div, "");
         loadMissionStatus();
       } else {
         statusSpan.textContent = t.uploadErr;
@@ -640,10 +677,24 @@ async function loadMissions() {
   });
 }
 
-// EXTRA CHALLENGE
+// EXTRA CHALLENGE BUTTONS
+const extraCam = document.getElementById("extraCamera");
+const extraGal = document.getElementById("extraGallery");
+document.getElementById("extraCamBtn").onclick = () => extraCam.click();
+document.getElementById("extraGalBtn").onclick = () => extraGal.click();
+
+function setExtraHint(name) {
+  const hint = document.getElementById("extraFileHint");
+  hint.textContent = name ? `Gewählt: ${name}` : "";
+}
+extraCam.onchange = () => setExtraHint(extraCam.files[0]?.name || "");
+extraGal.onchange = () => setExtraHint(extraGal.files[0]?.name || "");
+
+// EXTRA CHALLENGE UPLOAD
 document.getElementById("extraForm").onsubmit = async (ev) => {
   ev.preventDefault();
-  const file = document.getElementById("extraFile").files[0];
+
+  const file = extraCam.files[0] || extraGal.files[0];
   if (!file) return;
 
   const fd = new FormData();
@@ -658,7 +709,9 @@ document.getElementById("extraForm").onsubmit = async (ev) => {
   if (r.ok) {
     msg.textContent = t.uploadOk;
     msg.className = "status ok";
-    document.getElementById("extraFile").value = "";
+    extraCam.value = "";
+    extraGal.value = "";
+    setExtraHint("");
     loadMissionStatus();
   } else {
     msg.textContent = t.uploadErr;
@@ -712,10 +765,9 @@ function startMissionStatusPolling() {
 // TIMER
 async function loadTimer() {
   const res = await fetch("/api/timer");
-  const j = await res.json();
+  const j = await res.json().catch(() => ({ running:false, remainingSeconds:4500 }));
 
   const box = document.getElementById("timerArea");
-
   if (!j.running) {
     box.textContent = "75:00";
     return;
@@ -752,38 +804,25 @@ async function loadChat() {
     line.innerHTML = `<span class="sender">${sender}:</span> ${msg.text}`;
     box.appendChild(line);
 
-    if (msg.from_gm && msg.id > lastSeenChatId) {
-      newGM.push(msg);
-    }
+    if (msg.from_gm && msg.id > lastSeenChatId) newGM.push(msg);
   });
 
-  if (msgs.length > 0) {
-    lastSeenChatId = msgs[msgs.length - 1].id;
-  }
-
+  if (msgs.length > 0) lastSeenChatId = msgs[msgs.length - 1].id;
   box.scrollTop = box.scrollHeight;
 
-    if (newGM.length > 0) {
+  if (newGM.length > 0) {
     const last = newGM[newGM.length - 1];
 
-    // Sound abspielen
     const audio = document.getElementById("chatSound");
     if (audio) {
-      try {
-        audio.currentTime = 0;
-        audio.play().catch(() => {});
-      } catch (e) {
-        // falls Browser blockt – einfach ignorieren
-      }
+      try { audio.currentTime = 0; audio.play().catch(() => {}); } catch (e) {}
     }
 
-    // Popup anzeigen
     const overlay = document.getElementById("gmMsgOverlay");
     document.getElementById("gmMsgText").textContent = last.text;
     overlay.classList.add("active");
   }
-
-  }
+}
 
 document.getElementById("gmMsgOkBtn").onclick = () => {
   document.getElementById("gmMsgOverlay").classList.remove("active");
@@ -814,11 +853,9 @@ async function loadBroadcasts() {
   if (!currentTeamId) return;
   const r = await fetch("/api/team/broadcasts?teamId=" + currentTeamId);
   const arr = await r.json();
-
   if (arr.length === 0) return;
 
   const b = arr[0];
-
   const overlay = document.getElementById("broadcastOverlay");
   document.getElementById("broadcastText").textContent = b.text;
   overlay.classList.add("active");
@@ -845,8 +882,4 @@ applyLang();
 
 </body>
 </html>
-
-
-
-
 
