@@ -1,32 +1,40 @@
-const express = require('express');
-const multer = require('multer');
-const sqlite3 = require('sqlite3').verbose();
-const path = require('path');
-const fs = require('fs');
+const express = require("express");
+const multer = require("multer");
+const sqlite3 = require("sqlite3").verbose();
+const path = require("path");
+const fs = require("fs");
+const crypto = require("crypto");
 
 const app = express();
 const PORT = 3000;
 
 // ---------- Upload-Ordner ----------
-const uploadDir = path.join(__dirname, 'uploads');
+const uploadDir = path.join(__dirname, "uploads");
 if (!fs.existsSync(uploadDir)) {
   fs.mkdirSync(uploadDir);
 }
 
+// ---------- Multer Storage ----------
 const storage = multer.diskStorage({
   destination: function (req, file, cb) {
     cb(null, uploadDir);
   },
   filename: function (req, file, cb) {
-    const unique = Date.now() + '-' + Math.round(Math.random() * 1e9);
-    const ext = path.extname(file.originalname || '');
-    cb(null, unique + ext);
-  }
+    // ✅ wirklich eindeutig (keine Kollisionen bei vielen Uploads)
+    const id = crypto.randomBytes(8).toString("hex");
+    const ext = path.extname(file.originalname || "");
+    cb(null, `${Date.now()}-${id}${ext}`);
+  },
 });
-const upload = multer({ storage });
+
+// ✅ Upload Limit hoch (Videos)
+const upload = multer({
+  storage,
+  limits: { fileSize: 200 * 1024 * 1024 }, // 200MB (bei Bedarf anpassen)
+});
 
 // ---------- DB ----------
-const db = new sqlite3.Database(path.join(__dirname, 'game.db'));
+const db = new sqlite3.Database(path.join(__dirname, "game.db"));
 
 db.serialize(() => {
   db.run(`
@@ -60,18 +68,16 @@ db.serialize(() => {
     )
   `);
 
-  // Chat-Nachrichten (Team <-> GM)
   db.run(`
     CREATE TABLE IF NOT EXISTS messages (
       id INTEGER PRIMARY KEY AUTOINCREMENT,
       team_id INTEGER,
-      from_gm INTEGER, -- 0 = Team, 1 = GM
+      from_gm INTEGER,
       text TEXT,
       created_at TEXT DEFAULT (datetime('now'))
     )
   `);
 
-  // Broadcasts an alle Teams
   db.run(`
     CREATE TABLE IF NOT EXISTS broadcasts (
       id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -80,7 +86,6 @@ db.serialize(() => {
     )
   `);
 
-  // Quittierung der Broadcasts (welches Team hat mit OK bestätigt?)
   db.run(`
     CREATE TABLE IF NOT EXISTS broadcast_receipts (
       team_id INTEGER,
@@ -89,7 +94,6 @@ db.serialize(() => {
     )
   `);
 
-  // Globaler Timer-Status (eine Runde)
   db.run(`
     CREATE TABLE IF NOT EXISTS game_state (
       id INTEGER PRIMARY KEY CHECK (id = 1),
@@ -101,167 +105,41 @@ db.serialize(() => {
   // Missionen nur einfügen, wenn leer
   db.get(`SELECT COUNT(*) AS cnt FROM missions`, (err, row) => {
     if (err) {
-      console.error('Fehler beim Zählen der Missions', err);
+      console.error("Fehler beim Zählen der Missions", err);
       return;
     }
     if (row.cnt === 0) {
       const missions = [
-        [
-          1,
-          'BRUNNEN',
-          'Aus einem öffentlichen Brunnen Wasser trinken.',
-          'FOUNTAIN',
-          'Drink water from a public fountain.'
-        ],
-        [
-          2,
-          'DINGE',
-          'Vier verschiedene Gegenstände auf ein Bild bringen, die mit eurem Teambuchstaben beginnen. Im Chat die 4 Gegenstände benennen.',
-          'ITEMS',
-          'Include four items in one photo that all start with the first letter of your team name. Name the four items in the chat.'
-        ],
-        [
-          3,
-          'KLEIDERTAUSCH',
-          'Zwei Teammitglieder tauschen für das Foto ein Kleidungsstück (z.B. Jacke) und machen gemeinsam ein Bild.',
-          'CLOTHES SWAP',
-          'Two team members swap one piece of clothing (e.g. jacket) and take a photo together.'
-        ],
-        [
-          4,
-          'FLUSS',
-          'Einen Fuss in die Limmat stecken.',
-          'RIVER',
-          'Put one foot into the Limmat river.'
-        ],
-        [
-          5,
-          'FUSSGÄNGER',
-          'Ein TM über den Fussgänger Streifen tragen.',
-          'PEDESTRIAN',
-          'Carry one team member across a pedestrian crossing.'
-        ],
-        [
-          6,
-          'GLEICHGEWICHT',
-          'Während einer gesamten Liftfahrt bis zum Stillstand auf nur einem Fuss stehen, ohne die Wände zu berühren.',
-          'BALANCE',
-          'During an entire elevator ride (until it stops), stand on one foot without touching the walls.'
-        ],
-        [
-          7,
-          'GRAFFITI',
-          'Ein Graffiti / Tag finden. Alle TM müssen dies der Reihe nach laut vorlesen, am Schluss alle zusammen gleichzeitig „Respect!“ sagen.',
-          'GRAFFITI',
-          'Find a graffiti or tag. Each team member reads it out loud in turn, then at the end everyone says “Respect!” together.'
-        ],
-        [
-          8,
-          'HOROSKOP',
-          'Aus einer Gratiszeitung das Horoskop eines TM vorlesen. Während des Vorlesens pantomimisch zeigen, wie alles tatsächlich perfekt zutrifft.',
-          'HOROSCOPE',
-          'From a free newspaper, read the horoscope of one team member. While it is being read, act out how everything fits perfectly.'
-        ],
-        [
-          9,
-          'KUNST',
-          'Ein Bild, das irgendwo aufgehängt ist, selbst auf einem A4-Blatt nachzeichnen, sodass die Grundzüge klar erkennbar sind. Beide Bilder nebeneinander zeigen.',
-          'ART',
-          'Choose a picture hanging somewhere and redraw it yourself on an A4 sheet so that the main features are clearly recognizable. Show both pictures side by side.'
-        ],
-        [
-          10,
-          'LÖWE',
-          'Ein Bild eines Löwen in einem Buch oder einer Werbung finden und fotografieren.',
-          'LION',
-          'Find a picture of a lion in a book or advertisement and take a photo of it.'
-        ],
-        [
-          11,
-          'FULL TURN',
-          'Eine 360° Video mit allen TM, aber ohne andere Personen im Video.',
-          'FULL TURN',
-          'Record a 360° video with all team members but without any other people in the video.'
-        ],
-        [
-          12,
-          'NANA',
-          'Eine frei erfundene Geschichte der schwebenden blauen Figur in der Bahnhofhalle auf Englisch mit ernstem Gesicht erzählen. Dabei die Wörter „however“ und „a duck“ erwähnen. Die Figur muss im Hintergrund sein.',
-          'NANA',
-          'Invent a story about the floating blue figure in the main station hall and tell it in English with a serious face. Use the word “however” and mention “a duck”. The figure must be visible in the background.'
-        ],
-        [
-          13,
-          'PATRIOT',
-          'Unter einer Schweizer Fahne zu zweit eine Strophe der Nationalhymne singen. Die Fahne muss zusehen sein.',
-          'PATRIOT',
-          'Under a Swiss flag, two team members sing one verse of the national anthem. The flag must be visible.'
-        ],
-        [
-          14,
-          'PRIM-TRAM',
-          'Ein Selfie mit dem ganzen Team schiessen mit einem Tram im Hintergrund, dessen (klar ersichtliche) Nummer eine Primzahl ist.',
-          'PRIME TRAM',
-          'Take a selfie with the whole team in front of a tram whose clearly visible number is a prime number.'
-        ],
-        [
-          15,
-          'SPEED',
-          'Ein TM läuft an einer Haltestelle in einen Bus oder in ein Tram und sofort durch eine andere Türe wieder raus, bevor es abfährt.',
-          'SPEED',
-          'At a stop, one team member runs into a bus or tram and immediately exits through another door before it departs.'
-        ],
-        [
-          16,
-          'SBB',
-          'An einem SBB-Automaten eine Zugreise für 1 Person über CHF 300.- finden.',
-          'SBB',
-          'At a SBB ticket machine, find a train journey for 1 person costing more than CHF 300.–.'
-        ],
-        [
-          17,
-          'SCHÄRE STEI PAPIER',
-          'Eine Runde Schere, Stein, Papier gegen eine fremde Person gewinnen.',
-          'ROCK PAPER SCISSORS',
-          'Win a round of rock-paper-scissors against a stranger.'
-        ],
-        [
-          18,
-          'STATUE',
-          'Ein Selfie aller TM mit einer Statue im Hintergrund schiessen, wobei alle TM die Pose und den Gesichtsausdruck der Statue nachahmen.',
-          'STATUE',
-          'Take a selfie with all team members in front of a statue, imitating the pose and facial expression of the statue.'
-        ],
-        [
-          19,
-          'UGLY PIC',
-          'Beim Landesmuseum ein Bild mit möglichst hässlichem Hintergrund machen. Mit beiden Händen das V-Zeichen machen.',
-          'UGLY PIC',
-          'Near the Landesmuseum, take a picture with the ugliest background possible. Make the V-sign with both hands.'
-        ],
-        [
-          20,
-          'VIERSPRACHIG',
-          'Ein Plakat fotografieren, auf dem Wörter auf mindestens vier verschiedenen Sprachen zu lesen sind. Diese im Bild markieren.',
-          'FOUR LANGUAGES',
-          'Take a photo of a poster that has words in at least four different languages. Mark these words in the picture.'
-        ],
-        [
-          21,
-          'EXTRA CHALLENGE',
-          'Jedes Team soll das teuerste Gericht einer Speisekarte finden. Ist dieses teurer als jenes der anderen Teams, gewinnt dieses Team die Extra Challenge.',
-          'EXTRA CHALLENGE',
-          'Each team has to find the most expensive dish on a menu. If it is more expensive than the other teams’ choice, that team wins the Extra Challenge.'
-        ]
+        [1, "BRUNNEN", "Aus einem öffentlichen Brunnen Wasser trinken.", "FOUNTAIN", "Drink water from a public fountain."],
+        [2, "DINGE", "Vier verschiedene Gegenstände auf ein Bild bringen, die mit eurem Teambuchstaben beginnen. Im Chat die 4 Gegenstände benennen.", "ITEMS", "Include four items in one photo that all start with the first letter of your team name. Name the four items in the chat."],
+        [3, "KLEIDERTAUSCH", "Zwei Teammitglieder tauschen für das Foto ein Kleidungsstück (z.B. Jacke) und machen gemeinsam ein Bild.", "CLOTHES SWAP", "Two team members swap one piece of clothing (e.g. jacket) and take a photo together."],
+        [4, "FLUSS", "Einen Fuss in die Limmat stecken.", "RIVER", "Put one foot into the Limmat river."],
+        [5, "FUSSGÄNGER", "Ein TM über den Fussgänger Streifen tragen.", "PEDESTRIAN", "Carry one team member across a pedestrian crossing."],
+        [6, "GLEICHGEWICHT", "Während einer gesamten Liftfahrt bis zum Stillstand auf nur einem Fuss stehen, ohne die Wände zu berühren.", "BALANCE", "During an entire elevator ride (until it stops), stand on one foot without touching the walls."],
+        [7, "GRAFFITI", "Ein Graffiti / Tag finden. Alle TM müssen dies der Reihe nach laut vorlesen, am Schluss alle zusammen gleichzeitig „Respect!“ sagen.", "GRAFFITI", "Find a graffiti or tag. Each team member reads it out loud in turn, then at the end everyone says “Respect!” together."],
+        [8, "HOROSKOP", "Aus einer Gratiszeitung das Horoskop eines TM vorlesen. Während des Vorlesens pantomimisch zeigen, wie alles tatsächlich perfekt zutrifft.", "HOROSCOPE", "From a free newspaper, read the horoscope of one team member. While it is being read, act out how everything fits perfectly."],
+        [9, "KUNST", "Ein Bild, das irgendwo aufgehängt ist, selbst auf einem A4-Blatt nachzeichnen, sodass die Grundzüge klar erkennbar sind. Beide Bilder nebeneinander zeigen.", "ART", "Choose a picture hanging somewhere and redraw it yourself on an A4 sheet so that the main features are clearly recognizable. Show both pictures side by side."],
+        [10, "LÖWE", "Ein Bild eines Löwen in einem Buch oder einer Werbung finden und fotografieren.", "LION", "Find a picture of a lion in a book or advertisement and take a photo of it."],
+        [11, "FULL TURN", "Eine 360° Video mit allen TM, aber ohne andere Personen im Video.", "FULL TURN", "Record a 360° video with all team members but without any other people in the video."],
+        [12, "NANA", "Eine frei erfundene Geschichte der schwebenden blauen Figur in der Bahnhofhalle auf Englisch mit ernstem Gesicht erzählen. Dabei die Wörter „however“ und „a duck“ erwähnen. Die Figur muss im Hintergrund sein.", "NANA", "Invent a story about the floating blue figure in the main station hall and tell it in English with a serious face. Use the word “however” and mention “a duck”. The figure must be visible in the background."],
+        [13, "PATRIOT", "Unter einer Schweizer Fahne zu zweit eine Strophe der Nationalhymne singen. Die Fahne muss zusehen sein.", "PATRIOT", "Under a Swiss flag, two team members sing one verse of the national anthem. The flag must be visible."],
+        [14, "PRIM-TRAM", "Ein Selfie mit dem ganzen Team schiessen mit einem Tram im Hintergrund, dessen (klar ersichtliche) Nummer eine Primzahl ist.", "PRIME TRAM", "Take a selfie with the whole team in front of a tram whose clearly visible number is a prime number."],
+        [15, "SPEED", "Ein TM läuft an einer Haltestelle in einen Bus oder in ein Tram und sofort durch eine andere Türe wieder raus, bevor es abfährt.", "SPEED", "At a stop, one team member runs into a bus or tram and immediately exits through another door before it departs."],
+        [16, "SBB", "An einem SBB-Automaten eine Zugreise für 1 Person über CHF 300.- finden.", "SBB", "At a SBB ticket machine, find a train journey for 1 person costing more than CHF 300.–."],
+        [17, "SCHÄRE STEI PAPIER", "Eine Runde Schere, Stein, Papier gegen eine fremde Person gewinnen.", "ROCK PAPER SCISSORS", "Win a round of rock-paper-scissors against a stranger."],
+        [18, "STATUE", "Ein Selfie aller TM mit einer Statue im Hintergrund schiessen, wobei alle TM die Pose und den Gesichtsausdruck der Statue nachahmen.", "STATUE", "Take a selfie with all team members in front of a statue, imitating the pose and facial expression of the statue."],
+        [19, "UGLY PIC", "Beim Landesmuseum ein Bild mit möglichst hässlichem Hintergrund machen. Mit beiden Händen das V-Zeichen machen.", "UGLY PIC", "Near the Landesmuseum, take a picture with the ugliest background possible. Make the V-sign with both hands."],
+        [20, "VIERSPRACHIG", "Ein Plakat fotografieren, auf dem Wörter auf mindestens vier verschiedenen Sprachen zu lesen sind. Diese im Bild markieren.", "FOUR LANGUAGES", "Take a photo of a poster that has words in at least four different languages. Mark these words in the picture."],
+        [21, "EXTRA CHALLENGE", "Jedes Team soll das teuerste Gericht einer Speisekarte finden. Ist dieses teurer als jenes der anderen Teams, gewinnt dieses Team die Extra Challenge.", "EXTRA CHALLENGE", "Each team has to find the most expensive dish on a menu. If it is more expensive than the other teams’ choice, that team wins the Extra Challenge."],
       ];
 
       const stmt = db.prepare(`
         INSERT INTO missions (number, title_de, description_de, title_en, description_en)
         VALUES (?, ?, ?, ?, ?)
       `);
-      missions.forEach(m => stmt.run(m[0], m[1], m[2], m[3], m[4]));
+      missions.forEach((m) => stmt.run(m[0], m[1], m[2], m[3], m[4]));
       stmt.finalize();
-      console.log('Missionen in die DB eingefügt.');
+      console.log("Missionen in die DB eingefügt.");
     }
   });
 });
@@ -269,37 +147,45 @@ db.serialize(() => {
 // ---------- Middleware ----------
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
-app.use(express.static(path.join(__dirname, 'public')));
-app.use('/uploads', express.static(uploadDir));
+
+// public (index.html, gm.html, logo, bing.mp3, etc.)
+app.use(express.static(path.join(__dirname, "public")));
+
+// ✅ uploads mit Range + no-store (Video streamt korrekt)
+app.use("/uploads", express.static(uploadDir, {
+  acceptRanges: true,
+  etag: true,
+  lastModified: true,
+  maxAge: 0,
+  setHeaders: (res) => {
+    res.setHeader("Cache-Control", "no-store");
+  }
+}));
 
 // ---------- TEAM-API ----------
 
 // Team beitreten (Option A: gleicher Name = gleiches Team in dieser Runde)
-app.post('/api/join', (req, res) => {
+app.post("/api/join", (req, res) => {
   const { teamName } = req.body;
-  if (!teamName) return res.status(400).json({ error: 'Teamname fehlt' });
+  if (!teamName) return res.status(400).json({ error: "Teamname fehlt" });
 
-  db.run(
-    `INSERT OR IGNORE INTO teams (name) VALUES (?)`,
-    [teamName],
-    function (err) {
-      if (err) {
-        console.error(err);
-        return res.status(500).json({ error: 'DB-Fehler beim Anlegen des Teams' });
-      }
-      db.get(`SELECT id FROM teams WHERE name = ?`, [teamName], (err2, row) => {
-        if (err2 || !row) {
-          console.error(err2);
-          return res.status(500).json({ error: 'Team konnte nicht geladen werden' });
-        }
-        res.json({ teamId: row.id });
-      });
+  db.run(`INSERT OR IGNORE INTO teams (name) VALUES (?)`, [teamName], function (err) {
+    if (err) {
+      console.error(err);
+      return res.status(500).json({ error: "DB-Fehler beim Anlegen des Teams" });
     }
-  );
+    db.get(`SELECT id FROM teams WHERE name = ?`, [teamName], (err2, row) => {
+      if (err2 || !row) {
+        console.error(err2);
+        return res.status(500).json({ error: "Team konnte nicht geladen werden" });
+      }
+      res.json({ teamId: row.id });
+    });
+  });
 });
 
 // Missionen laden
-app.get('/api/missions', (req, res) => {
+app.get("/api/missions", (req, res) => {
   db.all(
     `SELECT id, number, title_de, description_de, title_en, description_en
      FROM missions
@@ -307,37 +193,60 @@ app.get('/api/missions', (req, res) => {
     (err, rows) => {
       if (err) {
         console.error(err);
-        return res.status(500).json({ error: 'DB-Fehler beim Laden der Missions' });
+        return res.status(500).json({ error: "DB-Fehler beim Laden der Missions" });
       }
       res.json(rows);
     }
   );
 });
 
-// Einsendung hochladen
-app.post('/api/submissions', upload.single('media'), (req, res) => {
+// Einsendung hochladen (mit Anti-Duplicate)
+app.post("/api/submissions", upload.single("media"), (req, res) => {
   const { teamId, missionId } = req.body;
-  if (!teamId || !missionId) return res.status(400).json({ error: 'teamId oder missionId fehlt' });
-  if (!req.file) return res.status(400).json({ error: 'Datei fehlt' });
+  if (!teamId || !missionId) return res.status(400).json({ error: "teamId oder missionId fehlt" });
+  if (!req.file) return res.status(400).json({ error: "Datei fehlt" });
 
-  db.run(
-    `INSERT INTO submissions (team_id, mission_id, filename, mimetype, status)
-     VALUES (?, ?, ?, ?, 'pending')`,
-    [teamId, missionId, req.file.filename, req.file.mimetype],
-    function (err) {
-      if (err) {
-        console.error(err);
-        return res.status(500).json({ error: 'DB-Fehler beim Speichern der Einsendung' });
-      }
-      res.json({ ok: true, submissionId: this.lastID });
+  // ✅ Anti-Duplicate: gleiche Mission vom gleichen Team innerhalb 3 Sekunden blocken
+  const dupSql = `
+    SELECT id
+    FROM submissions
+    WHERE team_id = ? AND mission_id = ?
+      AND created_at >= datetime('now','-3 seconds')
+    ORDER BY id DESC
+    LIMIT 1
+  `;
+
+  db.get(dupSql, [teamId, missionId], (dupErr, dupRow) => {
+    if (dupErr) {
+      console.error(dupErr);
+      // wenn check fehlschlägt: normal weitermachen
     }
-  );
+
+    if (dupRow) {
+      // neue Datei wieder löschen (wir brauchen sie nicht)
+      try { fs.unlinkSync(path.join(uploadDir, req.file.filename)); } catch (e) {}
+      return res.status(409).json({ error: "Duplicate upload blocked" });
+    }
+
+    db.run(
+      `INSERT INTO submissions (team_id, mission_id, filename, mimetype, status)
+       VALUES (?, ?, ?, ?, 'pending')`,
+      [teamId, missionId, req.file.filename, req.file.mimetype],
+      function (err) {
+        if (err) {
+          console.error(err);
+          return res.status(500).json({ error: "DB-Fehler beim Speichern der Einsendung" });
+        }
+        res.json({ ok: true, submissionId: this.lastID });
+      }
+    );
+  });
 });
 
 // --- TEAM-CHAT ---
-app.post('/api/team/messages', (req, res) => {
+app.post("/api/team/messages", (req, res) => {
   const { teamId, text } = req.body;
-  if (!teamId || !text) return res.status(400).json({ error: 'teamId oder text fehlt' });
+  if (!teamId || !text) return res.status(400).json({ error: "teamId oder text fehlt" });
 
   db.run(
     `INSERT INTO messages (team_id, from_gm, text) VALUES (?, 0, ?)`,
@@ -345,16 +254,16 @@ app.post('/api/team/messages', (req, res) => {
     function (err) {
       if (err) {
         console.error(err);
-        return res.status(500).json({ error: 'DB-Fehler beim Speichern der Nachricht' });
+        return res.status(500).json({ error: "DB-Fehler beim Speichern der Nachricht" });
       }
       res.json({ ok: true, id: this.lastID });
     }
   );
 });
 
-app.get('/api/team/messages', (req, res) => {
+app.get("/api/team/messages", (req, res) => {
   const { teamId } = req.query;
-  if (!teamId) return res.status(400).json({ error: 'teamId fehlt' });
+  if (!teamId) return res.status(400).json({ error: "teamId fehlt" });
 
   db.all(
     `SELECT id, from_gm, text, created_at
@@ -366,7 +275,7 @@ app.get('/api/team/messages', (req, res) => {
     (err, rows) => {
       if (err) {
         console.error(err);
-        return res.status(500).json({ error: 'DB-Fehler beim Laden der Nachrichten' });
+        return res.status(500).json({ error: "DB-Fehler beim Laden der Nachrichten" });
       }
       res.json(rows);
     }
@@ -374,9 +283,9 @@ app.get('/api/team/messages', (req, res) => {
 });
 
 // --- TEAM-BROADCASTS ---
-app.get('/api/team/broadcasts', (req, res) => {
+app.get("/api/team/broadcasts", (req, res) => {
   const { teamId } = req.query;
-  if (!teamId) return res.status(400).json({ error: 'teamId fehlt' });
+  if (!teamId) return res.status(400).json({ error: "teamId fehlt" });
 
   const sql = `
     SELECT b.id, b.text, b.created_at
@@ -389,15 +298,15 @@ app.get('/api/team/broadcasts', (req, res) => {
   db.all(sql, [teamId], (err, rows) => {
     if (err) {
       console.error(err);
-      return res.status(500).json({ error: 'DB-Fehler beim Laden der Broadcasts' });
+      return res.status(500).json({ error: "DB-Fehler beim Laden der Broadcasts" });
     }
     res.json(rows);
   });
 });
 
-app.post('/api/team/broadcasts/ack', (req, res) => {
+app.post("/api/team/broadcasts/ack", (req, res) => {
   const { teamId, broadcastId } = req.body;
-  if (!teamId || !broadcastId) return res.status(400).json({ error: 'teamId oder broadcastId fehlt' });
+  if (!teamId || !broadcastId) return res.status(400).json({ error: "teamId oder broadcastId fehlt" });
 
   db.run(
     `INSERT OR IGNORE INTO broadcast_receipts (team_id, broadcast_id) VALUES (?, ?)`,
@@ -405,7 +314,7 @@ app.post('/api/team/broadcasts/ack', (req, res) => {
     function (err) {
       if (err) {
         console.error(err);
-        return res.status(500).json({ error: 'DB-Fehler beim Bestätigen des Broadcasts' });
+        return res.status(500).json({ error: "DB-Fehler beim Bestätigen des Broadcasts" });
       }
       res.json({ ok: true });
     }
@@ -413,15 +322,16 @@ app.post('/api/team/broadcasts/ack', (req, res) => {
 });
 
 // --- TIMER für Teams ---
-app.get('/api/timer', (req, res) => {
+app.get("/api/timer", (req, res) => {
   db.get(`SELECT start_time, duration_minutes FROM game_state WHERE id = 1`, (err, row) => {
     if (err) {
       console.error(err);
-      return res.status(500).json({ error: 'DB-Fehler beim Laden des Timers' });
+      return res.status(500).json({ error: "DB-Fehler beim Laden des Timers" });
     }
     if (!row || !row.start_time) {
       return res.json({ running: false, remainingSeconds: 0 });
     }
+
     const start = new Date(row.start_time);
     const now = new Date();
     const elapsedMs = now - start;
@@ -431,17 +341,14 @@ app.get('/api/timer', (req, res) => {
     if (remainingMs <= 0) {
       return res.json({ running: false, remainingSeconds: 0 });
     }
-    res.json({
-      running: true,
-      remainingSeconds: Math.floor(remainingMs / 1000)
-    });
+    res.json({ running: true, remainingSeconds: Math.floor(remainingMs / 1000) });
   });
 });
 
 // --- TEAM: Mission-Status (letzte Einsendung pro Mission) ---
-app.get('/api/team/mission-status', (req, res) => {
+app.get("/api/team/mission-status", (req, res) => {
   const { teamId } = req.query;
-  if (!teamId) return res.status(400).json({ error: 'teamId fehlt' });
+  if (!teamId) return res.status(400).json({ error: "teamId fehlt" });
 
   const sql = `
     SELECT s.mission_id AS missionId, s.status
@@ -458,45 +365,45 @@ app.get('/api/team/mission-status', (req, res) => {
   db.all(sql, [teamId, teamId], (err, rows) => {
     if (err) {
       console.error(err);
-      return res.status(500).json({ error: 'DB-Fehler beim Laden des Mission-Status' });
+      return res.status(500).json({ error: "DB-Fehler beim Laden des Mission-Status" });
     }
     res.json(rows);
   });
 });
 
 // ---------- GM-AUTH ----------
-const GM_PASSWORD = 'AR1898';
-const GM_TOKEN = 'simple-static-token';
+const GM_PASSWORD = "AR1898";
+const GM_TOKEN = "simple-static-token";
 
 function gmAuth(req, res, next) {
-  const token = req.headers['x-gm-token'];
+  const token = req.headers["x-gm-token"];
   if (token !== GM_TOKEN) {
-    return res.status(401).json({ error: 'GM unauthorized' });
+    return res.status(401).json({ error: "GM unauthorized" });
   }
   next();
 }
 
-app.post('/api/gm/login', (req, res) => {
+app.post("/api/gm/login", (req, res) => {
   const { password } = req.body;
   if (password === GM_PASSWORD) {
     return res.json({ token: GM_TOKEN });
   }
-  return res.status(401).json({ error: 'Falsches Passwort' });
+  return res.status(401).json({ error: "Falsches Passwort" });
 });
 
 // --- GM: Teams-Liste ---
-app.get('/api/gm/teams', gmAuth, (req, res) => {
+app.get("/api/gm/teams", gmAuth, (req, res) => {
   db.all(`SELECT id, name FROM teams ORDER BY name ASC`, (err, rows) => {
     if (err) {
       console.error(err);
-      return res.status(500).json({ error: 'DB-Fehler beim Laden der Teams' });
+      return res.status(500).json({ error: "DB-Fehler beim Laden der Teams" });
     }
     res.json(rows);
   });
 });
 
 // --- GM: Inbox (letzte Nachricht pro Team) ---
-app.get('/api/gm/inbox', gmAuth, (req, res) => {
+app.get("/api/gm/inbox", gmAuth, (req, res) => {
   const sql = `
     SELECT
       t.id AS teamId,
@@ -517,13 +424,14 @@ app.get('/api/gm/inbox', gmAuth, (req, res) => {
   db.all(sql, (err, rows) => {
     if (err) {
       console.error(err);
-      return res.status(500).json({ error: 'DB-Fehler beim Laden der Inbox' });
+      return res.status(500).json({ error: "DB-Fehler beim Laden der Inbox" });
     }
     res.json(rows);
   });
 });
+
 // --- GM: Scores / Rangliste ---
-app.get('/api/gm/scores', gmAuth, (req, res) => {
+app.get("/api/gm/scores", gmAuth, (req, res) => {
   const sql = `
     SELECT t.id AS teamId, t.name AS teamName,
            COALESCE(SUM(CASE WHEN s.status = 'approved' THEN 1 ELSE 0 END), 0) AS points
@@ -535,16 +443,16 @@ app.get('/api/gm/scores', gmAuth, (req, res) => {
   db.all(sql, (err, rows) => {
     if (err) {
       console.error(err);
-      return res.status(500).json({ error: 'DB-Fehler beim Laden der Scores' });
+      return res.status(500).json({ error: "DB-Fehler beim Laden der Scores" });
     }
     res.json(rows);
   });
 });
 
 // --- GM: Submissions-Liste ---
-app.get('/api/gm/submissions', gmAuth, (req, res) => {
+app.get("/api/gm/submissions", gmAuth, (req, res) => {
   const sql = `
-   SELECT s.id,
+    SELECT s.id,
            s.filename,
            s.mimetype,
            s.status,
@@ -565,18 +473,18 @@ app.get('/api/gm/submissions', gmAuth, (req, res) => {
   db.all(sql, (err, rows) => {
     if (err) {
       console.error(err);
-      return res.status(500).json({ error: 'DB-Fehler beim Laden der Einsendungen' });
+      return res.status(500).json({ error: "DB-Fehler beim Laden der Einsendungen" });
     }
     res.json(rows);
   });
 });
 
 // --- GM: Submission bewerten ---
-app.post('/api/gm/submissions/:id/review', gmAuth, (req, res) => {
+app.post("/api/gm/submissions/:id/review", gmAuth, (req, res) => {
   const { id } = req.params;
   const { status, comment } = req.body;
-  if (!['approved', 'rejected', 'pending'].includes(status)) {
-    return res.status(400).json({ error: 'Ungültiger Status' });
+  if (!["approved", "rejected", "pending"].includes(status)) {
+    return res.status(400).json({ error: "Ungültiger Status" });
   }
 
   db.run(
@@ -585,7 +493,7 @@ app.post('/api/gm/submissions/:id/review', gmAuth, (req, res) => {
     function (err) {
       if (err) {
         console.error(err);
-        return res.status(500).json({ error: 'DB-Fehler beim Aktualisieren der Einsendung' });
+        return res.status(500).json({ error: "DB-Fehler beim Aktualisieren der Einsendung" });
       }
       res.json({ ok: true });
     }
@@ -593,9 +501,9 @@ app.post('/api/gm/submissions/:id/review', gmAuth, (req, res) => {
 });
 
 // --- GM: Chat lesen + schreiben ---
-app.get('/api/gm/messages', gmAuth, (req, res) => {
+app.get("/api/gm/messages", gmAuth, (req, res) => {
   const { teamId } = req.query;
-  if (!teamId) return res.status(400).json({ error: 'teamId fehlt' });
+  if (!teamId) return res.status(400).json({ error: "teamId fehlt" });
 
   db.all(
     `SELECT id, from_gm, text, created_at
@@ -607,16 +515,16 @@ app.get('/api/gm/messages', gmAuth, (req, res) => {
     (err, rows) => {
       if (err) {
         console.error(err);
-        return res.status(500).json({ error: 'DB-Fehler beim Laden der Nachrichten' });
+        return res.status(500).json({ error: "DB-Fehler beim Laden der Nachrichten" });
       }
       res.json(rows);
     }
   );
 });
 
-app.post('/api/gm/messages', gmAuth, (req, res) => {
+app.post("/api/gm/messages", gmAuth, (req, res) => {
   const { teamId, text } = req.body;
-  if (!teamId || !text) return res.status(400).json({ error: 'teamId oder text fehlt' });
+  if (!teamId || !text) return res.status(400).json({ error: "teamId oder text fehlt" });
 
   db.run(
     `INSERT INTO messages (team_id, from_gm, text) VALUES (?, 1, ?)`,
@@ -624,7 +532,7 @@ app.post('/api/gm/messages', gmAuth, (req, res) => {
     function (err) {
       if (err) {
         console.error(err);
-        return res.status(500).json({ error: 'DB-Fehler beim Speichern der GM-Nachricht' });
+        return res.status(500).json({ error: "DB-Fehler beim Speichern der GM-Nachricht" });
       }
       res.json({ ok: true, id: this.lastID });
     }
@@ -632,43 +540,35 @@ app.post('/api/gm/messages', gmAuth, (req, res) => {
 });
 
 // --- GM: Chat für EIN Team löschen ---
-app.post('/api/gm/chat/reset-team', gmAuth, (req, res) => {
+app.post("/api/gm/chat/reset-team", gmAuth, (req, res) => {
   const { teamId } = req.body;
-  if (!teamId) return res.status(400).json({ error: 'teamId fehlt' });
+  if (!teamId) return res.status(400).json({ error: "teamId fehlt" });
 
-  db.run(
-    `DELETE FROM messages WHERE team_id = ?`,
-    [teamId],
-    function (err) {
-      if (err) {
-        console.error(err);
-        return res.status(500).json({ error: 'DB-Fehler beim Löschen des Team-Chats' });
-      }
-      res.json({ ok: true });
+  db.run(`DELETE FROM messages WHERE team_id = ?`, [teamId], function (err) {
+    if (err) {
+      console.error(err);
+      return res.status(500).json({ error: "DB-Fehler beim Löschen des Team-Chats" });
     }
-  );
+    res.json({ ok: true });
+  });
 });
 
 // --- GM: Broadcast senden ---
-app.post('/api/gm/broadcast', gmAuth, (req, res) => {
+app.post("/api/gm/broadcast", gmAuth, (req, res) => {
   const { text } = req.body;
-  if (!text) return res.status(400).json({ error: 'Text fehlt' });
+  if (!text) return res.status(400).json({ error: "Text fehlt" });
 
-  db.run(
-    `INSERT INTO broadcasts (text) VALUES (?)`,
-    [text],
-    function (err) {
-      if (err) {
-        console.error(err);
-        return res.status(500).json({ error: 'DB-Fehler beim Speichern des Broadcasts' });
-      }
-      res.json({ ok: true, id: this.lastID });
+  db.run(`INSERT INTO broadcasts (text) VALUES (?)`, [text], function (err) {
+    if (err) {
+      console.error(err);
+      return res.status(500).json({ error: "DB-Fehler beim Speichern des Broadcasts" });
     }
-  );
+    res.json({ ok: true, id: this.lastID });
+  });
 });
 
 // --- GM: Timer starten (75 Minuten) ---
-app.post('/api/gm/timer/start', gmAuth, (req, res) => {
+app.post("/api/gm/timer/start", gmAuth, (req, res) => {
   const durationMinutes = 75;
   const startTime = new Date().toISOString();
 
@@ -684,7 +584,7 @@ app.post('/api/gm/timer/start', gmAuth, (req, res) => {
     function (err) {
       if (err) {
         console.error(err);
-        return res.status(500).json({ error: 'DB-Fehler beim Starten des Timers' });
+        return res.status(500).json({ error: "DB-Fehler beim Starten des Timers" });
       }
       res.json({ ok: true });
     }
@@ -692,31 +592,31 @@ app.post('/api/gm/timer/start', gmAuth, (req, res) => {
 });
 
 // --- GM: Timer stoppen (= zurücksetzen) ---
-app.post('/api/gm/timer/stop', gmAuth, (req, res) => {
+app.post("/api/gm/timer/stop", gmAuth, (req, res) => {
   db.run(`DELETE FROM game_state WHERE id = 1`, [], function (err) {
     if (err) {
       console.error(err);
-      return res.status(500).json({ error: 'DB-Fehler beim Stoppen des Timers' });
+      return res.status(500).json({ error: "DB-Fehler beim Stoppen des Timers" });
     }
     res.json({ ok: true });
   });
 });
 
-// --- GM: RUNDEN-RESET (alles für diese Runde löschen) ---
-app.post('/api/gm/reset', gmAuth, (req, res) => {
-  // 1. Upload-Dateien löschen
+// --- GM: RUNDEN-RESET ---
+app.post("/api/gm/reset", gmAuth, (req, res) => {
+  // 1) Upload-Dateien löschen
   fs.readdir(uploadDir, (err, files) => {
     if (!err && files) {
-      files.forEach(f => {
+      files.forEach((f) => {
         try {
           fs.unlinkSync(path.join(uploadDir, f));
         } catch (e) {
-          console.error('Fehler beim Löschen von', f, e);
+          console.error("Fehler beim Löschen von", f, e);
         }
       });
     }
 
-    // 2. Datenbank-Tabellen leeren (Runden-Daten)
+    // 2) DB leeren
     db.serialize(() => {
       db.run(`DELETE FROM submissions`);
       db.run(`DELETE FROM messages`);
@@ -726,9 +626,8 @@ app.post('/api/gm/reset', gmAuth, (req, res) => {
       db.run(`DELETE FROM teams`, [], function (err2) {
         if (err2) {
           console.error(err2);
-          return res.status(500).json({ error: 'DB-Fehler beim Runden-Reset' });
+          return res.status(500).json({ error: "DB-Fehler beim Runden-Reset" });
         }
-        // Missions bleiben erhalten
         res.json({ ok: true });
       });
     });
@@ -739,5 +638,3 @@ app.post('/api/gm/reset', gmAuth, (req, res) => {
 app.listen(PORT, () => {
   console.log(`Server läuft auf http://localhost:${PORT}`);
 });
-
-
