@@ -75,9 +75,7 @@
       background: rgba(255,255,255,0.15);
     }
 
-    #joinScreen, #mainScreen {
-      padding: 16px;
-    }
+    #joinScreen, #mainScreen { padding: 16px; }
     #mainScreen { display: none; }
 
     input {
@@ -106,7 +104,6 @@
       cursor: pointer;
     }
 
-    /* Secondary buttons for camera/gallery */
     button.secondaryBtn {
       width: 100%;
       padding: 12px;
@@ -120,8 +117,11 @@
       margin: 8px 0;
       cursor: pointer;
     }
-    button.secondaryBtn:hover {
-      background: rgba(255,255,255,0.08);
+    button.secondaryBtn:hover { background: rgba(255,255,255,0.08); }
+
+    button[disabled]{
+      opacity: 0.55;
+      cursor: not-allowed;
     }
 
     .mission-card {
@@ -158,10 +158,7 @@
       text-align: right;
     }
 
-    .mission-status-label {
-      font-size: 12px;
-      margin-top: 6px;
-    }
+    .mission-status-label { font-size: 12px; margin-top: 6px; }
     .mission-status-pending { color: #ffcc66; }
     .mission-status-approved { color: #4ade80; font-weight: bold; }
     .mission-status-rejected { color: #ef4444; font-weight: bold; }
@@ -175,20 +172,13 @@
       box-shadow: 0 2px 6px rgba(0,0,0,0.3);
     }
 
-    .status {
-      font-size: 13px;
-      margin-left: 4px;
-    }
+    .status { font-size: 13px; margin-left: 4px; }
     .status.ok { color: #4ade80; }
     .status.err { color: #ef4444; }
+    .status.warn { color: #ffd166; }
 
-    .fileHint {
-      font-size: 12px;
-      opacity: 0.85;
-      margin-top: 4px;
-    }
+    .fileHint { font-size: 12px; opacity: 0.85; margin-top: 4px; }
 
-    /* Chat */
     #chatBox {
       margin-top: 20px;
       background: #1b1b1b;
@@ -212,10 +202,7 @@
       margin-right: 4px;
     }
 
-    /* Overlays */
-    #broadcastOverlay,
-    #gmMsgOverlay,
-    #rulesOverlay {
+    #broadcastOverlay, #gmMsgOverlay, #rulesOverlay {
       position: fixed;
       inset: 0;
       background: rgba(0,0,0,0.6);
@@ -224,11 +211,7 @@
       justify-content: center;
       z-index: 50;
     }
-    #broadcastOverlay.active,
-    #gmMsgOverlay.active,
-    #rulesOverlay.active {
-      display: flex;
-    }
+    #broadcastOverlay.active, #gmMsgOverlay.active, #rulesOverlay.active { display: flex; }
 
     .overlayBox {
       background: var(--white);
@@ -241,7 +224,6 @@
     }
 
     .overlayBox h3 { margin-top: 0; }
-
     .overlayBox button {
       width: auto;
       margin-top: 10px;
@@ -254,7 +236,6 @@
       font-weight: bold;
     }
 
-    /* Timer */
     #timerArea {
       background: #222;
       padding: 12px;
@@ -266,34 +247,20 @@
     }
 
     @media (max-width: 600px) {
-      header {
-        flex-direction: column;
-        align-items: flex-start;
-        gap: 6px;
-      }
-      #headerLeft {
-        width: 100%;
-        justify-content: space-between;
-      }
+      header { flex-direction: column; align-items: flex-start; gap: 6px; }
+      #headerLeft { width: 100%; justify-content: space-between; }
       #headerLeft span { font-size: 16px; }
-      #headerRight {
-        width: 100%;
-        justify-content: flex-start;
-      }
+      #headerRight { width: 100%; justify-content: flex-start; }
       .mission-card { padding: 12px; }
       .mission-title { font-size: 16px; }
       .mission-desc { font-size: 13px; }
-      button.mainBtn, button.secondaryBtn {
-        font-size: 14px;
-        padding: 10px;
-      }
+      button.mainBtn, button.secondaryBtn { font-size: 14px; padding: 10px; }
       #chatBox { margin-bottom: 80px; }
     }
   </style>
 </head>
 
 <body>
-
 <header>
   <div id="headerLeft">
     <img src="/ARlogo.jpg" alt="AdventureRooms Logo">
@@ -308,7 +275,6 @@
   </div>
 </header>
 
-<!-- JOIN SCREEN -->
 <div id="joinScreen">
   <h2 id="welcomeTitle">Willkommen bei AR Missions</h2>
 
@@ -318,9 +284,7 @@
   <button class="mainBtn" id="joinBtn">Starten</button>
 </div>
 
-<!-- MAIN SCREEN -->
 <div id="mainScreen">
-
   <div id="timerArea">75:00</div>
 
   <div id="teamBanner" style="margin:-10px 0 14px 0; font-size:14px; opacity:0.9;">
@@ -355,9 +319,7 @@
     </div>
 
     <form id="extraForm">
-      <!-- Camera -->
       <input type="file" id="extraCamera" accept="image/*,video/*" capture="environment" hidden>
-      <!-- Gallery -->
       <input type="file" id="extraGallery" accept="image/*,video/*" hidden>
 
       <button type="button" class="secondaryBtn" id="extraCamBtn">📷 Foto / Video aufnehmen</button>
@@ -365,12 +327,11 @@
 
       <div class="fileHint" id="extraFileHint"></div>
 
-      <button type="submit" class="mainBtn">⬆️ Upload</button>
+      <button type="submit" class="mainBtn" id="extraUploadBtn">⬆️ Upload</button>
       <span id="extraUploadMsg" class="status"></span>
     </form>
   </div>
 
-  <!-- Chat -->
   <div id="chatBox">
     <h3 id="chatTitle">Chat</h3>
     <div id="chatMessages"></div>
@@ -379,7 +340,6 @@
   </div>
 </div>
 
-<!-- Broadcast popup -->
 <div id="broadcastOverlay">
   <div class="overlayBox">
     <h3 id="broadcastTitle">Nachricht des Game Masters</h3>
@@ -388,7 +348,6 @@
   </div>
 </div>
 
-<!-- GM message popup -->
 <div id="gmMsgOverlay">
   <div class="overlayBox">
     <h3 id="gmMsgTitle">Nachricht vom Game Master</h3>
@@ -397,7 +356,6 @@
   </div>
 </div>
 
-<!-- Regeln popup -->
 <div id="rulesOverlay">
   <div class="overlayBox">
     <h3 id="rulesTitle">Regeln</h3>
@@ -406,7 +364,6 @@
   </div>
 </div>
 
-<!-- Optional: Sound for GM messages -->
 <audio id="chatSound" preload="auto">
   <source src="/bing.mp3" type="audio/mpeg">
 </audio>
@@ -422,6 +379,9 @@ let timerInterval = null;
 let lastSeenChatId = 0;
 let extraMissionId = 21;
 
+// ✅ Upload-Lock pro Mission (verhindert doppelt senden)
+const uploadLocks = new Map(); // key: missionId or "extra" -> boolean
+
 const i18n = {
   de: {
     welcomeTitle: "Willkommen bei AdventureRooms Missions",
@@ -433,6 +393,9 @@ const i18n = {
     chat: "Chat",
     uploadOk: "Upload erfolgreich",
     uploadErr: "Upload fehlgeschlagen",
+    uploading: "Uploading… bitte warten",
+    retrying: "Netzwerkproblem – versuche nochmals…",
+    chooseFileFirst: "Bitte zuerst ein Foto/Video auswählen.",
     chatSend: "Senden",
     chatInputPlaceholder: "Nachricht eingeben...",
     extraDesc:
@@ -467,6 +430,9 @@ const i18n = {
     chat: "Chat",
     uploadOk: "Upload successful",
     uploadErr: "Upload failed",
+    uploading: "Uploading… please wait",
+    retrying: "Network issue – retrying…",
+    chooseFileFirst: "Please choose a photo/video first.",
     chatSend: "Send",
     chatInputPlaceholder: "Type a message...",
     extraDesc:
@@ -566,16 +532,69 @@ document.getElementById("joinBtn").onclick = async () => {
   startBroadcastPolling();
 };
 
-// ---------- FILE PICKER HELPERS ----------
-function setFileHint(div, text) {
-  const hint = div.querySelector(".fileHint");
-  if (hint) hint.textContent = text || "";
-}
-
+// ---------- Upload Helpers ----------
 function getChosenFile(formElem) {
   const cam = formElem.querySelector(".file-camera");
   const gal = formElem.querySelector(".file-gallery");
   return (cam && cam.files && cam.files[0]) || (gal && gal.files && gal.files[0]) || null;
+}
+
+function clearFiles(formElem) {
+  const cam = formElem.querySelector(".file-camera");
+  const gal = formElem.querySelector(".file-gallery");
+  if (cam) cam.value = "";
+  if (gal) gal.value = "";
+}
+
+function setFileHintFromForm(formElem, text) {
+  const hint = formElem.querySelector(".fileHint");
+  if (hint) hint.textContent = text || "";
+}
+
+function disableUploadUI(formElem, disabled, statusText, statusClass) {
+  const uploadBtn = formElem.querySelector(".uploadBtn");
+  const statusSpan = formElem.querySelector(".status");
+
+  const camBtn = formElem.querySelector(".btnCamera");
+  const galBtn = formElem.querySelector(".btnGallery");
+
+  if (uploadBtn) uploadBtn.disabled = disabled;
+  if (camBtn) camBtn.disabled = disabled;
+  if (galBtn) galBtn.disabled = disabled;
+
+  if (statusSpan && statusText !== undefined) {
+    statusSpan.textContent = statusText;
+    statusSpan.className = "status " + (statusClass || "");
+  }
+}
+
+async function fetchWithTimeout(url, opts, timeoutMs = 45000) {
+  const controller = new AbortController();
+  const id = setTimeout(() => controller.abort(), timeoutMs);
+  try {
+    const res = await fetch(url, { ...opts, signal: controller.signal });
+    return res;
+  } finally {
+    clearTimeout(id);
+  }
+}
+
+async function uploadSubmissionOnce(fd) {
+  return fetchWithTimeout("/api/submissions", { method: "POST", body: fd }, 60000);
+}
+
+// Upload with 1 retry
+async function uploadSubmissionWithRetry(fd, onRetry) {
+  try {
+    const r1 = await uploadSubmissionOnce(fd);
+    if (r1.ok) return r1;
+    return r1;
+  } catch (e) {
+    if (onRetry) onRetry();
+    // retry once
+    const r2 = await uploadSubmissionOnce(fd);
+    return r2;
+  }
 }
 
 // LOAD MISSIONS
@@ -624,7 +643,7 @@ async function loadMissions() {
 
         <div class="fileHint"></div>
 
-        <button type="submit" class="mainBtn">⬆️ Upload</button>
+        <button type="submit" class="mainBtn uploadBtn">⬆️ Upload</button>
         <span class="status"></span>
       </form>
     `;
@@ -632,90 +651,158 @@ async function loadMissions() {
     cont.appendChild(div);
 
     const formElem = div.querySelector("form");
-    const camInput = div.querySelector(".file-camera");
-    const galInput = div.querySelector(".file-gallery");
+    const camInput = formElem.querySelector(".file-camera");
+    const galInput = formElem.querySelector(".file-gallery");
 
-    div.querySelector(".btnCamera").onclick = () => camInput.click();
-    div.querySelector(".btnGallery").onclick = () => galInput.click();
+    // Buttons -> open chooser
+    formElem.querySelector(".btnCamera").onclick = () => camInput.click();
+    formElem.querySelector(".btnGallery").onclick = () => galInput.click();
 
+    // When selecting camera: clear gallery selection
     camInput.onchange = () => {
-      const f = camInput.files[0];
-      setFileHint(div, f ? `Gewählt: ${f.name}` : "");
+      if (camInput.files && camInput.files[0]) {
+        galInput.value = "";
+        setFileHintFromForm(formElem, `Gewählt: ${camInput.files[0].name}`);
+      } else {
+        setFileHintFromForm(formElem, "");
+      }
     };
+
+    // When selecting gallery: clear camera selection
     galInput.onchange = () => {
-      const f = galInput.files[0];
-      setFileHint(div, f ? `Gewählt: ${f.name}` : "");
+      if (galInput.files && galInput.files[0]) {
+        camInput.value = "";
+        setFileHintFromForm(formElem, `Gewählt: ${galInput.files[0].name}`);
+      } else {
+        setFileHintFromForm(formElem, "");
+      }
     };
 
     formElem.addEventListener("submit", async (ev) => {
       ev.preventDefault();
 
+      const t = i18n[currentLang];
+      const missionId = m.id;
+
+      // ✅ prevent double submit
+      if (uploadLocks.get(missionId)) return;
+      uploadLocks.set(missionId, true);
+
       const file = getChosenFile(formElem);
-      if (!file) return;
+      if (!file) {
+        disableUploadUI(formElem, false, t.chooseFileFirst, "warn");
+        uploadLocks.set(missionId, false);
+        return;
+      }
+
+      disableUploadUI(formElem, true, t.uploading, "warn");
 
       const fd = new FormData();
       fd.append("media", file);
       fd.append("teamId", currentTeamId);
-      fd.append("missionId", m.id);
+      fd.append("missionId", missionId);
 
-      const t = i18n[currentLang];
-      const resp = await fetch("/api/submissions", { method: "POST", body: fd });
+      try {
+        const resp = await uploadSubmissionWithRetry(fd, () => {
+          disableUploadUI(formElem, true, t.retrying, "warn");
+        });
 
-      const statusSpan = formElem.querySelector(".status");
-      if (resp.ok) {
-        statusSpan.textContent = t.uploadOk;
-        statusSpan.className = "status ok";
-        camInput.value = "";
-        galInput.value = "";
-        setFileHint(div, "");
-        loadMissionStatus();
-      } else {
-        statusSpan.textContent = t.uploadErr;
-        statusSpan.className = "status err";
+        if (resp.ok) {
+          disableUploadUI(formElem, false, t.uploadOk, "ok");
+          clearFiles(formElem);
+          setFileHintFromForm(formElem, "");
+          loadMissionStatus();
+        } else {
+          disableUploadUI(formElem, false, t.uploadErr, "err");
+        }
+      } catch (e) {
+        disableUploadUI(formElem, false, t.uploadErr, "err");
+      } finally {
+        uploadLocks.set(missionId, false);
       }
     });
   });
 }
 
-// EXTRA CHALLENGE BUTTONS
+// EXTRA CHALLENGE
 const extraCam = document.getElementById("extraCamera");
 const extraGal = document.getElementById("extraGallery");
+const extraUploadBtn = document.getElementById("extraUploadBtn");
+const extraMsg = document.getElementById("extraUploadMsg");
+
 document.getElementById("extraCamBtn").onclick = () => extraCam.click();
 document.getElementById("extraGalBtn").onclick = () => extraGal.click();
 
 function setExtraHint(name) {
-  const hint = document.getElementById("extraFileHint");
-  hint.textContent = name ? `Gewählt: ${name}` : "";
+  document.getElementById("extraFileHint").textContent = name ? `Gewählt: ${name}` : "";
 }
-extraCam.onchange = () => setExtraHint(extraCam.files[0]?.name || "");
-extraGal.onchange = () => setExtraHint(extraGal.files[0]?.name || "");
 
-// EXTRA CHALLENGE UPLOAD
+extraCam.onchange = () => {
+  if (extraCam.files && extraCam.files[0]) {
+    extraGal.value = "";
+    setExtraHint(extraCam.files[0].name);
+  } else setExtraHint("");
+};
+
+extraGal.onchange = () => {
+  if (extraGal.files && extraGal.files[0]) {
+    extraCam.value = "";
+    setExtraHint(extraGal.files[0].name);
+  } else setExtraHint("");
+};
+
 document.getElementById("extraForm").onsubmit = async (ev) => {
   ev.preventDefault();
+  const t = i18n[currentLang];
+
+  if (uploadLocks.get("extra")) return;
+  uploadLocks.set("extra", true);
 
   const file = extraCam.files[0] || extraGal.files[0];
-  if (!file) return;
+  if (!file) {
+    extraMsg.textContent = t.chooseFileFirst;
+    extraMsg.className = "status warn";
+    uploadLocks.set("extra", false);
+    return;
+  }
+
+  extraUploadBtn.disabled = true;
+  document.getElementById("extraCamBtn").disabled = true;
+  document.getElementById("extraGalBtn").disabled = true;
+
+  extraMsg.textContent = t.uploading;
+  extraMsg.className = "status warn";
 
   const fd = new FormData();
   fd.append("media", file);
   fd.append("teamId", currentTeamId);
   fd.append("missionId", extraMissionId);
 
-  const t = i18n[currentLang];
-  const msg = document.getElementById("extraUploadMsg");
+  try {
+    const r = await uploadSubmissionWithRetry(fd, () => {
+      extraMsg.textContent = t.retrying;
+      extraMsg.className = "status warn";
+    });
 
-  const r = await fetch("/api/submissions", { method: "POST", body: fd });
-  if (r.ok) {
-    msg.textContent = t.uploadOk;
-    msg.className = "status ok";
-    extraCam.value = "";
-    extraGal.value = "";
-    setExtraHint("");
-    loadMissionStatus();
-  } else {
-    msg.textContent = t.uploadErr;
-    msg.className = "status err";
+    if (r.ok) {
+      extraMsg.textContent = t.uploadOk;
+      extraMsg.className = "status ok";
+      extraCam.value = "";
+      extraGal.value = "";
+      setExtraHint("");
+      loadMissionStatus();
+    } else {
+      extraMsg.textContent = t.uploadErr;
+      extraMsg.className = "status err";
+    }
+  } catch (e) {
+    extraMsg.textContent = t.uploadErr;
+    extraMsg.className = "status err";
+  } finally {
+    extraUploadBtn.disabled = false;
+    document.getElementById("extraCamBtn").disabled = false;
+    document.getElementById("extraGalBtn").disabled = false;
+    uploadLocks.set("extra", false);
   }
 };
 
@@ -766,12 +853,9 @@ function startMissionStatusPolling() {
 async function loadTimer() {
   const res = await fetch("/api/timer");
   const j = await res.json().catch(() => ({ running:false, remainingSeconds:4500 }));
-
   const box = document.getElementById("timerArea");
-  if (!j.running) {
-    box.textContent = "75:00";
-    return;
-  }
+
+  if (!j.running) { box.textContent = "75:00"; return; }
 
   let sec = j.remainingSeconds;
   let m = Math.floor(sec / 60);
@@ -812,15 +896,11 @@ async function loadChat() {
 
   if (newGM.length > 0) {
     const last = newGM[newGM.length - 1];
-
     const audio = document.getElementById("chatSound");
-    if (audio) {
-      try { audio.currentTime = 0; audio.play().catch(() => {}); } catch (e) {}
-    }
+    if (audio) { try { audio.currentTime = 0; audio.play().catch(() => {}); } catch (e) {} }
 
-    const overlay = document.getElementById("gmMsgOverlay");
     document.getElementById("gmMsgText").textContent = last.text;
-    overlay.classList.add("active");
+    document.getElementById("gmMsgOverlay").classList.add("active");
   }
 }
 
@@ -856,12 +936,11 @@ async function loadBroadcasts() {
   if (arr.length === 0) return;
 
   const b = arr[0];
-  const overlay = document.getElementById("broadcastOverlay");
   document.getElementById("broadcastText").textContent = b.text;
-  overlay.classList.add("active");
+  document.getElementById("broadcastOverlay").classList.add("active");
 
   document.getElementById("broadcastOkBtn").onclick = async () => {
-    overlay.classList.remove("active");
+    document.getElementById("broadcastOverlay").classList.remove("active");
     await fetch("/api/team/broadcasts/ack", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
@@ -879,7 +958,5 @@ function startBroadcastPolling() {
 // initial
 applyLang();
 </script>
-
 </body>
 </html>
-
