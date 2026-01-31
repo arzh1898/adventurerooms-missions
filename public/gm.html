@@ -194,7 +194,6 @@
 
 <div id="mainPanel">
 
-  <!-- TIMER -->
   <div class="section">
     <h2>⏱ TIMER</h2>
     <p id="timerStatus">Timer nicht gestartet.</p>
@@ -202,7 +201,6 @@
     <button class="btn-grey" id="timerStop">Stop</button>
   </div>
 
-  <!-- BROADCAST -->
   <div class="section">
     <h2>📢 Nachricht an ALLE Teams</h2>
     <textarea id="broadcastText" rows="3" placeholder="Mitteilung an alle Teams..."></textarea>
@@ -210,18 +208,16 @@
     <p id="broadcastStatus"></p>
   </div>
 
-  <!-- TEAMS / RANGLISTE -->
   <div class="section">
     <h2>👥 Teams & Rangliste (aktuelle Runde)</h2>
     <table id="teamTable">
       <thead>
-        <tr><th>Team</th><th>Punkte (nur GM)</th><th>Aktion</th></tr>
+        <tr><th>Team</th><th>Punkte</th><th>Aktion</th></tr>
       </thead>
       <tbody></tbody>
     </table>
   </div>
 
-  <!-- CHAT -->
   <div class="section">
     <h2>💬 Team-Chat</h2>
     <select id="chatTeamSelect"></select>
@@ -232,7 +228,6 @@
     <p id="chatStatus"></p>
   </div>
 
-  <!-- SUBMISSIONS -->
   <div class="section">
     <h2>📷 Einsendungen</h2>
     <table id="submissionTable">
@@ -250,7 +245,6 @@
     </table>
   </div>
 
-  <!-- RESET -->
   <div class="section">
     <h2>⚠ RESET</h2>
     <button class="btn-red" id="resetRound">❌ Ganze Runde resetten</button>
@@ -261,7 +255,6 @@
   </div>
 </div>
 
-<!-- Popup Overlay -->
 <div id="gmPopupOverlay">
   <div id="gmPopupBox">
     <h3 id="gmPopupTitle">Neue Nachricht</h3>
@@ -279,12 +272,29 @@ let GM_TOKEN = null;
 let currentChatTeam = null;
 
 let inboxInterval = null;
-let lastSeenTeamMsgId = {}; // { teamId: lastMessageId }
+let lastSeenTeamMsgId = {};
 let popupTeamId = null;
 
 // Timer state
 let gmTimerInterval = null;
 let gmRemainingSeconds = null;
+
+// render optimization
+let lastSubmissionRenderKey = "";
+
+// ---------- helpers ----------
+function safeStr(v){ return (v === null || v === undefined) ? "" : String(v); }
+function escapeHtml(s){
+  return safeStr(s)
+    .replace(/&/g,"&amp;").replace(/</g,"&lt;")
+    .replace(/>/g,"&gt;").replace(/"/g,"&quot;").replace(/'/g,"&#039;");
+}
+function buildRenderKey(list){
+  // simple key: newest id + count (good enough)
+  if (!Array.isArray(list) || list.length === 0) return "empty";
+  const first = list[0];
+  return `${first.id}-${list.length}`;
+}
 
 // ---------------- LOGIN ----------------
 document.getElementById("loginBtn").onclick = async () => {
@@ -306,14 +316,14 @@ document.getElementById("loginBtn").onclick = async () => {
   document.getElementById("mainPanel").style.display = "block";
 
   await loadAll();
+
+  // ✅ polling (not stacking)
   setInterval(loadAll, 8000);
 
-  // Inbox Polling für Popups (neue Team Nachrichten)
   await loadInboxAndNotify();
   if (inboxInterval) clearInterval(inboxInterval);
   inboxInterval = setInterval(loadInboxAndNotify, 3000);
 
-  // Timer initial + Sync
   await loadTimer();
   setInterval(loadTimer, 10000);
 };
@@ -364,7 +374,6 @@ async function loadTimer() {
   }
 }
 
-// Timer Buttons
 document.getElementById("timerStart").onclick = async () => {
   await fetch("/api/gm/timer/start", {
     method: "POST",
@@ -386,7 +395,6 @@ document.getElementById("timerStop").onclick = async () => {
     clearInterval(gmTimerInterval);
     gmTimerInterval = null;
   }
-
   loadTimer();
 };
 
@@ -401,54 +409,64 @@ document.getElementById("broadcastSend").onclick = async () => {
     body: JSON.stringify({ text })
   });
 
-  if (res.ok) {
-    document.getElementById("broadcastStatus").textContent = "Gesendet!";
-    document.getElementById("broadcastText").value = "";
-  } else {
-    document.getElementById("broadcastStatus").textContent = "Fehler beim Senden.";
-  }
+  document.getElementById("broadcastStatus").textContent =
+    res.ok ? "Gesendet!" : "Fehler beim Senden.";
+  if (res.ok) document.getElementById("broadcastText").value = "";
 };
 
-// ---------------- TEAMS + RANGLISTE ----------------
-async function loadTeams() {
-  const teamRes = await fetch("/api/gm/teams", { headers: { "x-gm-token": GM_TOKEN } });
-  const teams = await teamRes.json();
-
+// ---------------- TEAMS + RANGLISTE (SORTED) ----------------
+async function loadTeamsAndRanking() {
+  // ✅ use scores as single source of truth (already sorted DESC by server)
   const scoreRes = await fetch("/api/gm/scores", { headers: { "x-gm-token": GM_TOKEN } });
-  const scores = await scoreRes.json();
+  const scores = await scoreRes.json().catch(() => []);
 
   const tbody = document.querySelector("#teamTable tbody");
   tbody.innerHTML = "";
 
-  teams.forEach(team => {
-    const score = scores.find(s => String(s.teamId) === String(team.id))?.points || 0;
+  scores.forEach(row => {
+    const teamId = row.teamId;
+    const teamName = escapeHtml(row.teamName);
+    const points = row.points || 0;
+
     tbody.insertAdjacentHTML(
       "beforeend",
       `<tr>
-        <td>${team.name}</td>
-        <td>${score}</td>
-        <td><button class="btn-blue" onclick="selectChatTeam(${team.id})">Chat</button></td>
+        <td>${teamName}</td>
+        <td>${points}</td>
+        <td><button class="btn-blue" onclick="selectChatTeam(${teamId})">Chat</button></td>
       </tr>`
     );
   });
 
+  // ✅ keep selection stable
   const sel = document.getElementById("chatTeamSelect");
+  const prev = currentChatTeam ? String(currentChatTeam) : null;
+
   sel.innerHTML = "";
-  teams.forEach(t => {
-    sel.insertAdjacentHTML("beforeend", `<option value="${t.id}">${t.name}</option>`);
+  scores.forEach(r => {
+    sel.insertAdjacentHTML("beforeend",
+      `<option value="${r.teamId}">${escapeHtml(r.teamName)}</option>`
+    );
   });
 
-  if ((!currentChatTeam || !teams.find(t => String(t.id) === String(currentChatTeam))) && teams.length > 0) {
-    currentChatTeam = String(teams[0].id);
+  // if previous selection still exists -> keep it
+  const stillExists = prev && scores.some(r => String(r.teamId) === prev);
+  if (stillExists) {
+    currentChatTeam = prev;
+    sel.value = prev;
+  } else if (scores.length > 0) {
+    currentChatTeam = String(scores[0].teamId);
     sel.value = currentChatTeam;
-    loadChat();
+  } else {
+    currentChatTeam = null;
   }
 }
 
 // ---------------- CHAT ----------------
 function selectChatTeam(id) {
   currentChatTeam = String(id);
-  document.getElementById("chatTeamSelect").value = currentChatTeam;
+  const sel = document.getElementById("chatTeamSelect");
+  if (sel) sel.value = currentChatTeam;
   loadChat();
 }
 window.selectChatTeam = selectChatTeam;
@@ -464,14 +482,17 @@ async function loadChat() {
   const res = await fetch(`/api/gm/messages?teamId=${currentChatTeam}`, {
     headers: { "x-gm-token": GM_TOKEN }
   });
-  const msgs = await res.json();
+  const msgs = await res.json().catch(() => []);
 
   const box = document.getElementById("chatMessages");
   box.innerHTML = "";
 
   msgs.forEach(m => {
     const sender = m.from_gm ? "GM" : "Team";
-    box.insertAdjacentHTML("beforeend", `<div class="chat-line"><b>${sender}:</b> ${m.text}</div>`);
+    box.insertAdjacentHTML(
+      "beforeend",
+      `<div class="chat-line"><b>${sender}:</b> ${escapeHtml(m.text)}</div>`
+    );
   });
 
   box.scrollTop = box.scrollHeight;
@@ -480,8 +501,12 @@ async function loadChat() {
 document.getElementById("chatSend").onclick = async () => {
   if (!currentChatTeam) return;
 
-  const text = document.getElementById("chatInput").value.trim();
+  const input = document.getElementById("chatInput");
+  const text = input.value.trim();
   if (!text) return;
+
+  // simple anti-double-click
+  document.getElementById("chatSend").disabled = true;
 
   const res = await fetch("/api/gm/messages", {
     method: "POST",
@@ -489,8 +514,10 @@ document.getElementById("chatSend").onclick = async () => {
     body: JSON.stringify({ teamId: Number(currentChatTeam), text })
   });
 
+  document.getElementById("chatSend").disabled = false;
+
   if (res.ok) {
-    document.getElementById("chatInput").value = "";
+    input.value = "";
     document.getElementById("chatStatus").textContent = "";
     loadChat();
   } else {
@@ -519,7 +546,8 @@ async function loadInboxAndNotify() {
     headers: { "x-gm-token": GM_TOKEN }
   });
   if (!res.ok) return;
-  const rows = await res.json();
+
+  const rows = await res.json().catch(() => []);
 
   rows.forEach(r => {
     if (!r.lastMessageId) return;
@@ -539,7 +567,7 @@ async function loadInboxAndNotify() {
 function showGmPopup(teamId, teamName, text) {
   popupTeamId = String(teamId);
   document.getElementById("gmPopupTitle").textContent = `Neue Nachricht von ${teamName}`;
-  document.getElementById("gmPopupText").textContent = text;
+  document.getElementById("gmPopupText").textContent = safeStr(text);
   document.getElementById("gmPopupReply").value = "";
   document.getElementById("gmPopupOverlay").classList.add("active");
 
@@ -554,8 +582,11 @@ document.getElementById("gmPopupClose").onclick = () => {
 document.getElementById("gmPopupSend").onclick = async () => {
   if (!popupTeamId) return;
 
-  const text = document.getElementById("gmPopupReply").value.trim();
+  const input = document.getElementById("gmPopupReply");
+  const text = input.value.trim();
   if (!text) return;
+
+  document.getElementById("gmPopupSend").disabled = true;
 
   await fetch("/api/gm/messages", {
     method: "POST",
@@ -563,40 +594,56 @@ document.getElementById("gmPopupSend").onclick = async () => {
     body: JSON.stringify({ teamId: Number(popupTeamId), text })
   });
 
+  document.getElementById("gmPopupSend").disabled = false;
+
   document.getElementById("gmPopupOverlay").classList.remove("active");
   popupTeamId = null;
+
   loadChat();
 };
 
-// ---------------- SUBMISSIONS ----------------
+// ---------------- SUBMISSIONS (stable video) ----------------
 async function loadSubmissions() {
   const res = await fetch("/api/gm/submissions", {
     headers: { "x-gm-token": GM_TOKEN }
   });
-  const list = await res.json();
+  const list = await res.json().catch(() => []);
+
+  // ✅ re-render only when changed (prevents video restart / “lag”)
+  const key = buildRenderKey(list);
+  if (key === lastSubmissionRenderKey) return;
+  lastSubmissionRenderKey = key;
 
   const tbody = document.querySelector("#submissionTable tbody");
   tbody.innerHTML = "";
 
   list.forEach(s => {
-    const media = s.mimetype && s.mimetype.startsWith("image")
-      ? `<img src="/uploads/${s.filename}" alt="upload">`
-      : `<video src="/uploads/${s.filename}" controls></video>`;
+    const isImg = s.mimetype && s.mimetype.startsWith("image");
+    const cacheBust = `?v=${encodeURIComponent(s.id)}`;
+
+    const media = isImg
+      ? `<img src="/uploads/${encodeURIComponent(s.filename)}${cacheBust}" alt="upload">`
+      : `<video
+            src="/uploads/${encodeURIComponent(s.filename)}${cacheBust}"
+            controls
+            preload="metadata"
+            playsinline
+          ></video>`;
 
     tbody.insertAdjacentHTML(
       "beforeend",
       `<tr data-sub-id="${s.id}">
-        <td>${s.teamName}</td>
+        <td>${escapeHtml(s.teamName)}</td>
         <td>
-          <div><strong>M${s.missionNumber}: ${s.missionTitleDe}</strong></div>
-          <div class="gm-mission-desc">${s.missionDescDe || ""}</div>
+          <div><strong>M${s.missionNumber}: ${escapeHtml(s.missionTitleDe)}</strong></div>
+          <div class="gm-mission-desc">${escapeHtml(s.missionDescDe || "")}</div>
         </td>
         <td>${media}</td>
-        <td>${s.status}</td>
+        <td>${escapeHtml(s.status)}</td>
         <td>
           <input type="text" class="commentInput"
                  placeholder="Kommentar (Pflicht bei Ablehnen)"
-                 value="${s.comment || ""}">
+                 value="${escapeHtml(s.comment || "")}">
         </td>
         <td>
           <button class="btn-green" onclick="review(${s.id}, 'approved', ${s.teamId}, 'M${s.missionNumber}')">✔</button>
@@ -635,8 +682,10 @@ async function review(id, status, teamId, missionLabel) {
     });
   }
 
+  // force re-render submissions after review
+  lastSubmissionRenderKey = "";
   loadSubmissions();
-  loadTeams();
+  loadTeamsAndRanking();
   if (teamId && String(currentChatTeam) === String(teamId)) loadChat();
 }
 window.review = review;
@@ -650,22 +699,21 @@ document.getElementById("resetRound").onclick = async () => {
     headers: { "x-gm-token": GM_TOKEN }
   });
 
-  // UI leeren
   currentChatTeam = null;
   document.getElementById("chatMessages").innerHTML = "";
   document.getElementById("chatTeamSelect").innerHTML = "";
   document.querySelector("#teamTable tbody").innerHTML = "";
   document.querySelector("#submissionTable tbody").innerHTML = "";
 
-  // Timer stoppen
   gmRemainingSeconds = null;
   renderTimerStatus();
   if (gmTimerInterval) { clearInterval(gmTimerInterval); gmTimerInterval = null; }
 
   alert("Runde zurückgesetzt!");
-  loadAll();
 
-  // Inbox polling neu starten
+  lastSubmissionRenderKey = "";
+  await loadAll();
+
   await loadInboxAndNotify();
   if (inboxInterval) clearInterval(inboxInterval);
   inboxInterval = setInterval(loadInboxAndNotify, 3000);
@@ -675,11 +723,10 @@ document.getElementById("resetRound").onclick = async () => {
 async function loadAll() {
   if (!GM_TOKEN) return;
   await loadTimer();
-  await loadTeams();
+  await loadTeamsAndRanking();
   await loadSubmissions();
   await loadChat();
 }
 </script>
 </body>
 </html>
-
